@@ -4,7 +4,7 @@
 |------|------|
 | プロジェクト ID | PRJ-OSAKA |
 | 名称 | 大阪・SUUMO 賃貸監視（あびこ／今里エリア） |
-| GitHub（予定） | https://github.com/m-okumura/osaka-rent-monitor |
+| GitHub | https://github.com/m-okumura/osaka-rent-monitor |
 | ローカル配置 | `C:\Users\3031662\Work\1_projects\PRJ-OSAKA_SUUMO賃貸監視` |
 | 親プロジェクト | **なし**（PRJ-AKIYA / `akiya-monitor` とは別 repo・別運用） |
 
@@ -40,8 +40,8 @@
 | 要件整理 | 完了（2026-09-24） |
 | SUUMO PoC（一覧パース） | 完了（2026-09-24） |
 | MVP（差分 + Resend） | 完了（2026-09-24） |
-| GitHub / Secrets | 未（push 後に Settings） |
-| 本番運用 | 未 |
+| GitHub / push | 完了（2026-09-24） |
+| Secrets / 本番運用 | **要設定**（下記） |
 
 ## 関連ドキュメント
 
