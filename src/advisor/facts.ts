@@ -16,7 +16,10 @@ export type AdvisorFact = {
   stationAccess: string[];
   soundKeywords: string[];
   isLeoPalace: boolean;
-  cancellationReview: boolean;
+  cancellationClass: string;
+  cancellationMailLabel: string;
+  contractTerm: string | null;
+  cancellationHints: string[];
   score: number;
   tier: string;
   scoreReasons: string[];
@@ -42,7 +45,11 @@ export function toAdvisorFacts(listings: ScoredListing[]): AdvisorFact[] {
       : [l.accessSummary].filter(Boolean),
     soundKeywords: l.detail?.soundKeywords ?? [],
     isLeoPalace: l.detail?.isLeoPalace ?? false,
-    cancellationReview: l.detail?.cancellationReview ?? true,
+    cancellationClass: l.detail?.cancellationClass ?? "not_listed",
+    cancellationMailLabel:
+      l.detail?.cancellationMailLabel ?? "解約条件:SUUMO概要に記載なし",
+    contractTerm: l.detail?.contractTerm ?? null,
+    cancellationHints: l.detail?.cancellationHints ?? [],
     score: l.score,
     tier: l.tier,
     scoreReasons: l.scoreReasons,

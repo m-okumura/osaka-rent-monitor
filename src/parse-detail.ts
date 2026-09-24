@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { analyzeCancellation } from "./cancellation.js";
 import type { ListingDetail, StructureKind } from "./types.js";
 
 export type ParsedDetail = ListingDetail;
@@ -111,18 +112,28 @@ export function parseSuumoDetailHtml(html: string): ParsedDetail {
     .get()
     .filter(Boolean);
 
-  const blob = [
+  const contractTermRaw = table.get("契約期間") ?? null;
+  const remarksRaw = table.get("備考") ?? null;
+
+  const soundBlob = [
     propertyName,
     structureRaw ?? "",
     equipmentRaw,
     appealTexts.join(" "),
-    $("body").text(),
+    contractTermRaw ?? "",
+    remarksRaw ?? "",
   ].join("\n");
 
-  const soundKeywords = findSoundKeywords(blob);
-  const isLeoPalace = /レオパレス/i.test(propertyName) || /レオパレス/i.test(blob);
+  const soundKeywords = findSoundKeywords(soundBlob);
+  const isLeoPalace =
+    /レオパレス/i.test(propertyName) ||
+    /レオパレス/i.test(soundBlob);
 
-  const cancellationReview = true;
+  const cancellation = analyzeCancellation({
+    contractTermRaw,
+    remarksRaw,
+    extraTexts: appealTexts,
+  });
 
   return {
     propertyName,
@@ -134,6 +145,9 @@ export function parseSuumoDetailHtml(html: string): ParsedDetail {
     appealTexts,
     soundKeywords,
     isLeoPalace,
-    cancellationReview,
+    cancellationClass: cancellation.class,
+    cancellationMailLabel: cancellation.mailLabel,
+    contractTerm: cancellation.contractTerm,
+    cancellationHints: cancellation.hints,
   };
 }

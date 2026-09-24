@@ -7,6 +7,8 @@ export type MonitorState = {
 /** 通知・state 用（SUUMO 1 部屋） */
 export type StructureKind = "rc" | "steel" | "light_steel" | "other" | "unknown";
 
+export type CancellationClass = "review" | "term_only" | "not_listed";
+
 export type ListingDetail = {
   propertyName: string;
   structureRaw: string | null;
@@ -17,7 +19,10 @@ export type ListingDetail = {
   appealTexts: string[];
   soundKeywords: string[];
   isLeoPalace: boolean;
-  cancellationReview: boolean;
+  cancellationClass: CancellationClass;
+  cancellationMailLabel: string;
+  contractTerm: string | null;
+  cancellationHints: string[];
 };
 
 export type Listing = {

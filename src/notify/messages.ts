@@ -74,7 +74,9 @@ function renderListingsBody(listings: ScoredListing[]): string {
       const access =
         listing.detail?.stationAccess[0] ?? listing.accessSummary;
       const flags: string[] = [];
-      if (listing.detail?.cancellationReview) flags.push("解約条件:要確認");
+      if (listing.detail?.cancellationMailLabel) {
+        flags.push(listing.detail.cancellationMailLabel);
+      }
       if (listing.detail?.soundKeywords.length) {
         flags.push(`防音KW: ${listing.detail.soundKeywords.join("・")}`);
       }
