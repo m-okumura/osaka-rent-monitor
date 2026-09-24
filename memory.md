@@ -6,4 +6,4 @@
 - MVP: `collect-listings` → `filter` → `state` 差分 → Resend（akiya 同型）
 - 初回 `npm run check` で 21 ID を `.data/state.json` に保存（通知スキップ）
 - GitHub: https://github.com/m-okumura/osaka-rent-monitor （main push 済み）
-- 本番: 当 repo の Secrets（`RESEND_API_KEY`, `MAIL_TO`）→ Actions 手動 or cron
+- 本番: Secrets 設定済み。Actions 手動成功（snapshot / 差分）。cron 8/13/20 JST
