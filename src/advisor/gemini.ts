@@ -67,10 +67,20 @@ id フィールドを本文に繰り返さない。
 2. 見送り推奨（理由付き）
 3. 次のアクション（不動産会社への質問例2つ）`;
 
+/** 503 が続く 3.x の前に、比較的安定な 2.0 を1巡挟む */
+const STABLE_AFTER_PREFERRED = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+] as const;
+
 function modelCandidates(): string[] {
   const preferred = config.gemini.model;
-  const rest = MODEL_FALLBACKS.filter((m) => m !== preferred);
-  return [preferred, ...rest];
+  const stable = STABLE_AFTER_PREFERRED.filter((m) => m !== preferred);
+  const stableSet = new Set<string>(STABLE_AFTER_PREFERRED);
+  const rest = MODEL_FALLBACKS.filter(
+    (m) => m !== preferred && !stableSet.has(m),
+  );
+  return [preferred, ...stable, ...rest];
 }
 
 async function generateWithModelOnce(
