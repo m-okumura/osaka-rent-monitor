@@ -27,7 +27,9 @@ async function prepareForMail(raw: Listing[]): Promise<{
   console.log("AI アドバイス生成…");
   const advisor = await generateGeminiAdvice(scored);
   if (advisor.skipped) {
-    console.log(`AI スキップ: ${advisor.reason ?? "不明"}`);
+    console.warn(
+      `AI スキップ: ${advisor.reason ?? "不明"}（メール送信は続行）`,
+    );
   }
 
   return { scored, advisorHtml: advisor.html };

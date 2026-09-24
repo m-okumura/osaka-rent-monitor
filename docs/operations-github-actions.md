@@ -35,6 +35,7 @@
 | `MAIL_TO` | 通知先メール |
 
 | `GEMINI_API_KEY` | v1 AI 選定メモ（任意） |
+| `GEMINI_MODEL` | 省略時 `gemini-3.8-flash`（503 時は自動リトライ＋フォールバック） |
 
 
 

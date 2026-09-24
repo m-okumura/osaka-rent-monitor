@@ -4,13 +4,16 @@ import type { ScoredListing } from "../types.js";
 import { toAdvisorFacts, type AdvisorFact } from "./facts.js";
 import { renderAdvisorMarkdownToHtml } from "./markdown-email.js";
 
-/** API 廃止時のフォールバック（先頭から試行） */
+/** 404 になった旧モデルは含めない。503 時はリトライ後に次へ */
 const MODEL_FALLBACKS = [
   "gemini-3.8-flash",
   "gemini-3.6-flash",
-  "gemini-2.5-flash",
-  "gemini-1.5-flash",
+  "gemini-3.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
 ] as const;
+
+const RETRYABLE_ATTEMPTS = 3;
 
 export type AdvisorOutput = {
   html: string;
@@ -18,6 +21,24 @@ export type AdvisorOutput = {
   reason?: string;
   modelUsed?: string;
 };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRetryableError(msg: string): boolean {
+  return /503|429|UNAVAILABLE|overloaded|Resource exhausted|high demand/i.test(
+    msg,
+  );
+}
+
+function isNotFoundError(msg: string): boolean {
+  return /404|not found|no longer available|is not found for API/i.test(msg);
+}
 
 function factsToPrompt(facts: AdvisorFact[]): string {
   return JSON.stringify(
@@ -52,7 +73,7 @@ function modelCandidates(): string[] {
   return [preferred, ...rest];
 }
 
-async function generateWithModel(
+async function generateWithModelOnce(
   apiKey: string,
   modelName: string,
   prompt: string,
@@ -64,6 +85,44 @@ async function generateWithModel(
   });
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
+}
+
+async function generateWithModel(
+  apiKey: string,
+  modelName: string,
+  prompt: string,
+): Promise<string> {
+  let lastMsg = "";
+  for (let attempt = 0; attempt < RETRYABLE_ATTEMPTS; attempt++) {
+    try {
+      return await generateWithModelOnce(apiKey, modelName, prompt);
+    } catch (error) {
+      lastMsg = errorMessage(error);
+      if (isNotFoundError(lastMsg)) throw error;
+      if (isRetryableError(lastMsg) && attempt < RETRYABLE_ATTEMPTS - 1) {
+        const waitMs = 2000 * (attempt + 1);
+        console.warn(
+          `Gemini ${modelName} 混雑/503 → ${waitMs}ms 後にリトライ (${attempt + 2}/${RETRYABLE_ATTEMPTS})`,
+        );
+        await sleep(waitMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(lastMsg || "Gemini unknown error");
+}
+
+function escapeHtmlModel(name: string): string {
+  return name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+}
+
+function advisorUnavailableHtml(reason: string): string {
+  const short = reason.slice(0, 180).replace(/</g, "&lt;");
+  return `<section style="margin:1.2em 0;padding:0.85em 1em;background:#fff8e6;border-radius:8px;border:1px solid #f0e0a0;">
+<p style="margin:0;color:#553;font-size:0.95em;"><strong>AI 選定メモ</strong>は Google API の都合で省略しました（503 等）。<strong>ルールスコア TOP</strong>と物件一覧を参照してください。</p>
+<p style="margin:0.5em 0 0;color:#887;font-size:0.8em;">${short}</p>
+</section>`;
 }
 
 export async function generateGeminiAdvice(
@@ -100,19 +159,16 @@ ${bodyHtml}
         skipped: false,
       };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      errors.push(`${modelName}: ${msg.slice(0, 200)}`);
+      const msg = errorMessage(error);
+      errors.push(`${modelName}: ${msg.slice(0, 160)}`);
       console.warn(`Gemini ${modelName} 失敗: ${msg.slice(0, 120)}`);
     }
   }
 
+  const reason = `全モデル失敗 (${errors.join(" | ")})`;
   return {
-    html: "",
+    html: advisorUnavailableHtml(reason),
     skipped: true,
-    reason: `全モデル失敗 (${errors.join(" | ")})`,
+    reason,
   };
-}
-
-function escapeHtmlModel(name: string): string {
-  return name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 }
