@@ -57,6 +57,8 @@ export const config = {
   snapshotEmail: process.env.SNAPSHOT_EMAIL === "true",
   detailFetchEnabled: process.env.DETAIL_FETCH !== "false",
   aiAdvisorEnabled: process.env.AI_ADVISOR !== "false",
+  /** 最寄り1行目が私鉄のみ等なら除外 */
+  accessFilterEnabled: process.env.ACCESS_FILTER !== "false",
   notifyProvider,
   gemini: {
     apiKey: () => optionalEnv("GEMINI_API_KEY"),

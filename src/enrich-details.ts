@@ -1,3 +1,4 @@
+import { passesPrimaryAccessFilter } from "./access-filter.js";
 import { fetchSuumoHtml } from "./suumo-client.js";
 import { parseSuumoDetailHtml } from "./parse-detail.js";
 import { scoreListing, sortByScore } from "./score.js";
@@ -22,6 +23,14 @@ export async function enrichAndScoreListings(
     try {
       const html = await fetchSuumoHtml(listing.detailUrl);
       const detail = parseSuumoDetailHtml(html);
+      const primary =
+        detail.stationAccess[0] ?? listing.accessSummary;
+      if (!passesPrimaryAccessFilter(primary)) {
+        console.log(
+          `  詳細で最寄り除外: ${detail.propertyName || listing.buildingTitle} (${primary})`,
+        );
+        continue;
+      }
       scored.push(scoreListing(listing, detail));
       console.log(
         `  詳細: ${detail.propertyName || listing.buildingTitle} score=${scored.at(-1)!.score}`,

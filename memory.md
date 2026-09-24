@@ -8,3 +8,4 @@
 - GitHub: https://github.com/m-okumura/osaka-rent-monitor （main push 済み）
 - 本番: Secrets 設定済み。Actions 手動成功（snapshot / 差分）。cron 8/13/20 JST
 - v1: `parse-detail` + `score` + `advisor/gemini`（通知対象のみ詳細 GET）。`GEMINI_API_KEY` を repo Secret に追加
+- 最寄り1行目フィルタ（DENY 私鉄 / ALLOW 地下鉄・JR）。cron は新規差分のみ（`docs/access-filter.md`）

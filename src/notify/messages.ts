@@ -125,10 +125,10 @@ export function buildNewListingsMail(
   context: MailContext,
 ): { subject: string; html: string } {
   return buildListingsMail({
-    introHtml: `<p>SUUMO 賃貸（今里・あびこ）に、条件に合う<strong>新規</strong>物件が ${listings.length} 件あります（詳細・スコア・AI メモ付き）。</p>`,
+    introHtml: `<p>SUUMO 賃貸（今里・あびこ）の<strong>新規差分</strong>です（${listings.length} 件）。最寄り1行目が地下鉄/JR の物件のみ。詳細・スコア・AI メモ付き。</p>`,
     listings,
     context,
-    subjectPrefix: "新規",
+    subjectPrefix: "新規差分",
   });
 }
 

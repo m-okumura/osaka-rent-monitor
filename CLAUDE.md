@@ -34,5 +34,8 @@
 | `GEMINI_API_KEY` | v1 AI 選定（任意） |
 | `AI_ADVISOR` | `false` で Gemini オフ |
 | `DETAIL_FETCH` | `false` で詳細 GET オフ |
+| `ACCESS_FILTER` | `false` で最寄り私鉄除外オフ |
+
+詳細: `docs/access-filter.md`
 
 詳細: `docs/operations-github-actions.md`

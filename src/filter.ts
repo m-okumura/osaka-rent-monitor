@@ -1,3 +1,4 @@
+import { passesPrimaryAccessFilter } from "./access-filter.js";
 import { config } from "./config.js";
 import type { SuumoListing } from "./parse-listings.js";
 import type { Listing } from "./types.js";
@@ -25,14 +26,30 @@ export function suumoRowToListing(
   };
 }
 
-/** MVP: 1K・管理費込上限・賃貸マンション（/mansion/ 取得） */
+function passesCoreFilters(l: Listing): boolean {
+  if (l.madori !== config.madori) return false;
+  if (l.totalYen > config.rentMaxTotal) return false;
+  if (!l.buildingKind.includes("マンション")) return false;
+  return true;
+}
+
+/** 家賃・間取り・マンション（アクセス判定前） */
+export function applyCoreFilters(listings: Listing[]): Listing[] {
+  return listings.filter(passesCoreFilters);
+}
+
+/** MVP + 最寄り1行目（私鉄除外） */
 export function applyMvpFilters(listings: Listing[]): Listing[] {
-  return listings.filter((l) => {
-    if (l.madori !== config.madori) return false;
-    if (l.totalYen > config.rentMaxTotal) return false;
-    if (!l.buildingKind.includes("マンション")) return false;
-    return true;
-  });
+  return applyCoreFilters(listings).filter((l) =>
+    passesPrimaryAccessFilter(l.accessSummary),
+  );
+}
+
+export function countAccessFilteredOut(mapped: Listing[]): number {
+  if (!config.accessFilterEnabled) return 0;
+  return applyCoreFilters(mapped).filter(
+    (l) => !passesPrimaryAccessFilter(l.accessSummary),
+  ).length;
 }
 
 export function rowsToListings(
@@ -46,3 +63,4 @@ export function rowsToListings(
   }
   return applyMvpFilters(mapped);
 }
+

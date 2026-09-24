@@ -1,4 +1,4 @@
-import { rowsToListings } from "./filter.js";
+import { applyMvpFilters, countAccessFilteredOut, suumoRowToListing } from "./filter.js";
 import { parseResultCount, parseSuumoListHtml } from "./parse-listings.js";
 import { fetchSuumoHtml } from "./suumo-client.js";
 import { SEARCH_TARGETS } from "./suumo-urls.js";
@@ -27,7 +27,18 @@ export async function collectListings(): Promise<CollectResult> {
     const html = await fetchSuumoHtml(target.listUrl);
     const siteTotal = parseResultCount(html);
     const rows = parseSuumoListHtml(html);
-    const listings = rowsToListings(rows, target.label);
+    const mapped: Listing[] = [];
+    for (const row of rows) {
+      const listing = suumoRowToListing(row, target.label);
+      if (listing) mapped.push(listing);
+    }
+    const accessDropped = countAccessFilteredOut(mapped);
+    if (accessDropped > 0) {
+      console.log(
+        `${target.label}: 最寄り私鉄等で除外 ${accessDropped} 件（1行目フィルタ）`,
+      );
+    }
+    const listings = applyMvpFilters(mapped);
 
     summaries.push({
       searchArea: target.label,
