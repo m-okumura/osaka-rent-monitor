@@ -1,0 +1,26 @@
+{
+  "name": "osaka-rent-monitor",
+  "version": "0.1.0",
+  "description": "PRJ-OSAKA: 大阪 SUUMO 賃貸監視",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsx src/index.ts",
+    "poc": "tsx src/poc.ts",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "nodemailer": "^6.9.15",
+    "resend": "^6.28.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/nodemailer": "^6.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

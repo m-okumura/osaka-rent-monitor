@@ -1,0 +1,42 @@
+name: Osaka Rent Monitor
+
+on:
+  schedule:
+    - cron: "0 23 * * *" # 8:00 JST
+    - cron: "0 4 * * *" # 13:00 JST
+    - cron: "0 11 * * *" # 20:00 JST
+  workflow_dispatch:
+    inputs:
+      snapshot_email:
+        description: 現時点の該当物件一覧をメール送信（差分は見ない）
+        type: boolean
+        default: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Restore listing state
+        uses: actions/cache@v4
+        with:
+          path: .data/state.json
+          key: osaka-rent-monitor-state
+
+      - run: npm ci
+
+      - name: Run check
+        env:
+          NOTIFY_PROVIDER: resend
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          RENT_MAX_TOTAL: "55000"
+          NOTIFY_ON_FIRST_RUN: "false"
+          SNAPSHOT_EMAIL: ${{ github.event_name == 'workflow_dispatch' && inputs.snapshot_email == true && 'true' || 'false' }}
+        run: npm run check
