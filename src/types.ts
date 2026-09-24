@@ -41,12 +41,25 @@ export type Listing = {
   detailUrl: string;
 };
 
+export type StructureTrust =
+  | "listing_only"
+  | "building_consensus"
+  | "conflict_safe_side";
+
 export type ScoredListing = Listing & {
   detail?: ListingDetail;
   detailFetchError?: string;
   score: number;
   tier: "recommended" | "neutral" | "caution" | "exclude";
   scoreReasons: string[];
+  /** 同一建物グルーピング用（正規化済み） */
+  buildingKey?: string;
+  /** 掲載表記を建物内で統合した後の構造 */
+  structureEffective?: StructureKind;
+  structureTrust?: StructureTrust;
+  structureConflict?: boolean;
+  /** コード算出の心斎橋通勤目安（JSON 根拠用） */
+  commuteHintShinsaibashi?: string | null;
 };
 
 export type AreaFetchSummary = {

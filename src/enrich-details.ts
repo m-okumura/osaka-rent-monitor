@@ -1,4 +1,6 @@
 import { passesPrimaryAccessFilter } from "./access-filter.js";
+import { applyBuildingStructureConsensus } from "./building-structure.js";
+import { commuteHintToShinsaibashi } from "./commute-hints.js";
 import { fetchSuumoHtml } from "./suumo-client.js";
 import { parseSuumoDetailHtml } from "./parse-detail.js";
 import { scoreListing, sortByScore } from "./score.js";
@@ -42,5 +44,14 @@ export async function enrichAndScoreListings(
     }
   }
 
-  return sortByScore(scored);
+  const withBuilding = applyBuildingStructureConsensus(scored);
+  const withCommute = withBuilding.map((l) => ({
+    ...l,
+    commuteHintShinsaibashi: commuteHintToShinsaibashi(
+      l.detail?.stationAccess?.length
+        ? l.detail.stationAccess
+        : [l.accessSummary],
+    ),
+  }));
+  return sortByScore(withCommute);
 }

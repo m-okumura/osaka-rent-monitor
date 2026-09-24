@@ -14,7 +14,30 @@ function parseAreaFromListText(areaText: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function structureLabel(kind: StructureKind): string {
+export function structureScoreDelta(kind: StructureKind): number {
+  switch (kind) {
+    case "rc":
+      return 25;
+    case "steel":
+      return -15;
+    case "light_steel":
+      return -10;
+    default:
+      return 0;
+  }
+}
+
+export function applyStructureTierCap(
+  tier: ScoredListing["tier"],
+  kind: StructureKind,
+): ScoredListing["tier"] {
+  if (kind === "steel" || kind === "light_steel") {
+    return tier === "recommended" ? "neutral" : tier;
+  }
+  return tier;
+}
+
+export function structureLabel(kind: StructureKind): string {
   switch (kind) {
     case "rc":
       return "RC（鉄筋コン）";
@@ -59,15 +82,12 @@ export function scoreListing(
   }
 
   const kind = detail?.structureKind ?? "unknown";
-  if (kind === "rc") {
-    score += 25;
-    reasons.push("RC造 (+25)");
-  } else if (kind === "steel") {
-    score -= 15;
-    reasons.push("鉄骨造は防音面で慎重 (-15)");
-  } else if (kind === "light_steel") {
-    score -= 10;
-    reasons.push("軽量鉄骨 (-10)");
+  const structDelta = structureScoreDelta(kind);
+  if (structDelta !== 0) {
+    score += structDelta;
+    if (kind === "rc") reasons.push("RC造 (+25)");
+    else if (kind === "steel") reasons.push("鉄骨造は防音面で慎重 (-15)");
+    else if (kind === "light_steel") reasons.push("軽量鉄骨 (-10)");
   } else if (kind === "unknown") {
     reasons.push("構造不明（詳細要確認）");
   }
@@ -116,9 +136,7 @@ export function scoreListing(
   let tier: ScoredListing["tier"] = "neutral";
   if (score >= 75) tier = "recommended";
   else if (score < 45) tier = "caution";
-  if (kind === "steel" || kind === "light_steel") {
-    tier = tier === "recommended" ? "neutral" : tier;
-  }
+  tier = applyStructureTierCap(tier, kind);
 
   if (detail) {
     reasons.unshift(

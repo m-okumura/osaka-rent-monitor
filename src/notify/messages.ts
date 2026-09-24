@@ -32,8 +32,18 @@ function formatRentLine(listing: ScoredListing): string {
     listing.detail?.areaSqm != null
       ? `${listing.detail.areaSqm}㎡`
       : listing.areaText;
-  const structure = listing.detail?.structureRaw ?? "構造不明";
-  return `${listing.madori} / ${area} / ${listing.floor} / ${structure} / 計 ${listing.totalYen.toLocaleString("ja-JP")}円${admin ? `（${listing.rentYen.toLocaleString("ja-JP")}円${admin}）` : ""}`;
+  let structure = listing.detail?.structureRaw ?? "構造不明";
+  if (
+    listing.structureConflict &&
+    listing.structureEffective &&
+    listing.structureEffective !== listing.detail?.structureKind
+  ) {
+    structure = `${structure} → 判定:${listing.structureEffective}`;
+  }
+  const commute = listing.commuteHintShinsaibashi
+    ? ` / ${listing.commuteHintShinsaibashi}`
+    : "";
+  return `${listing.madori} / ${area} / ${listing.floor} / ${structure}${commute} / 計 ${listing.totalYen.toLocaleString("ja-JP")}円${admin ? `（${listing.rentYen.toLocaleString("ja-JP")}円${admin}）` : ""}`;
 }
 
 function renderSummaries(summaries: AreaFetchSummary[]): string {

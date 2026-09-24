@@ -12,8 +12,12 @@ export type AdvisorFact = {
   areaSqm: number | null;
   floor: string;
   structureKind: string;
+  structureEffective: string;
+  structureTrust: string;
+  structureConflict: boolean;
   structureRaw: string | null;
   stationAccess: string[];
+  commuteHintShinsaibashi: string | null;
   soundKeywords: string[];
   isLeoPalace: boolean;
   cancellationClass: string;
@@ -39,10 +43,14 @@ export function toAdvisorFacts(listings: ScoredListing[]): AdvisorFact[] {
     areaSqm: l.detail?.areaSqm ?? null,
     floor: l.floor,
     structureKind: l.detail?.structureKind ?? "unknown",
+    structureEffective: l.structureEffective ?? l.detail?.structureKind ?? "unknown",
+    structureTrust: l.structureTrust ?? "listing_only",
+    structureConflict: l.structureConflict ?? false,
     structureRaw: l.detail?.structureRaw ?? null,
     stationAccess: l.detail?.stationAccess.length
       ? l.detail.stationAccess
       : [l.accessSummary].filter(Boolean),
+    commuteHintShinsaibashi: l.commuteHintShinsaibashi ?? null,
     soundKeywords: l.detail?.soundKeywords ?? [],
     isLeoPalace: l.detail?.isLeoPalace ?? false,
     cancellationClass: l.detail?.cancellationClass ?? "not_listed",
