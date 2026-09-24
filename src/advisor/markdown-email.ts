@@ -1,5 +1,8 @@
 import type { AdvisorFact } from "./facts.js";
 
+const PH_START = "\uE000";
+const PH_END = "\uE001";
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -8,12 +11,18 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Gemini の [text](url) や裸 URL を除去（リンクは後段で SUUMO URL に統一） */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Gemini の [text](url) や裸 URL、壊れた LINK プレースホルダを除去 */
 export function normalizeGeminiMarkdown(md: string): string {
   return md
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/\s*\(id:\s*\d+\)/gi, "")
-    .replace(/https?:\/\/\S+/g, "");
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\{\{LINK(?::[^}]*)?\}\}/g, "")
+    .replace(/\*\*\s*\*\*/g, "");
 }
 
 function linkLabelsForFact(f: AdvisorFact): string[] {
@@ -30,39 +39,85 @@ function linkLabelsForFact(f: AdvisorFact): string[] {
   return [...labels];
 }
 
-/** 物件名をすべて detailUrl 付きリンクに統一 */
-export function linkifyPropertyNames(text: string, facts: AdvisorFact[]): string {
-  const pairs: { label: string; url: string }[] = [];
+function buildLabelUrlMap(facts: AdvisorFact[]): Map<string, string> {
+  const map = new Map<string, string>();
   for (const f of facts) {
     for (const label of linkLabelsForFact(f)) {
-      pairs.push({ label, url: f.detailUrl });
+      if (!map.has(label)) map.set(label, f.detailUrl);
     }
   }
-  pairs.sort((a, b) => b.label.length - a.label.length);
-
-  let out = text;
-  for (const { label, url } of pairs) {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    out = out.replace(
-      new RegExp(escaped, "g"),
-      `{{LINK:${label}::${url}}}`,
-    );
-  }
-  return out;
+  return map;
 }
 
-function renderInline(line: string): string {
+function isPlaceholderSegment(part: string): boolean {
+  return part.startsWith(PH_START) && part.endsWith(PH_END);
+}
+
+function placeholder(index: number): string {
+  return `${PH_START}${index}${PH_END}`;
+}
+
+type LinkRegistry = { name: string; url: string }[];
+
+/** 物件名 → SUUMO リンク（二重置換・ネストを防ぐ） */
+export function linkifyPropertyNames(
+  text: string,
+  facts: AdvisorFact[],
+): { text: string; registry: LinkRegistry } {
+  const labelToUrl = buildLabelUrlMap(facts);
+  const labels = [...labelToUrl.keys()].sort((a, b) => b.length - a.length);
+  const registry: LinkRegistry = [];
+
+  const linkifyPlainSegment = (segment: string): string => {
+    let s = segment;
+    for (const label of labels) {
+      const url = labelToUrl.get(label)!;
+      const esc = escapeRegExp(label);
+
+      s = s.replace(new RegExp(`\\*\\*${esc}\\*\\*`, "g"), () => {
+        const idx = registry.length;
+        registry.push({ name: label, url });
+        return placeholder(idx);
+      });
+
+      const parts = s.split(/(\uE000\d+\uE001)/);
+      s = parts
+        .map((part) => {
+          if (isPlaceholderSegment(part)) return part;
+          return part.replace(new RegExp(esc, "g"), () => {
+            const idx = registry.length;
+            registry.push({ name: label, url });
+            return placeholder(idx);
+          });
+        })
+        .join("");
+    }
+    return s;
+  };
+
+  const segments = text.split(/(\uE000\d+\uE001)/);
+  const out = segments
+    .map((part) => (isPlaceholderSegment(part) ? part : linkifyPlainSegment(part)))
+    .join("");
+
+  return { text: out, registry };
+}
+
+function renderInline(line: string, registry: LinkRegistry): string {
   const parts: string[] = [];
-  const re = /\{\{LINK:([^:]+)::([^}]+)\}\}/g;
+  const re = /\uE000(\d+)\uE001/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(line)) !== null) {
     parts.push(formatBoldSegment(line.slice(last, m.index)));
-    const name = m[1]!;
-    const url = m[2]!;
-    parts.push(
-      `<a href="${escapeHtml(url)}" style="color:#0b57d0;text-decoration:underline;">${escapeHtml(name)}</a>`,
-    );
+    const entry = registry[Number.parseInt(m[1]!, 10)];
+    if (entry) {
+      parts.push(
+        `<a href="${escapeHtml(entry.url)}" style="color:#0b57d0;text-decoration:underline;">${escapeHtml(entry.name)}</a>`,
+      );
+    } else {
+      parts.push(escapeHtml(m[0]));
+    }
     last = m.index + m[0].length;
   }
   parts.push(formatBoldSegment(line.slice(last)));
@@ -75,9 +130,12 @@ function formatBoldSegment(segment: string): string {
 }
 
 /** メール向け Markdown サブセット（## / 箇条書き） */
-export function renderAdvisorMarkdownToHtml(md: string, facts: AdvisorFact[]): string {
+export function renderAdvisorMarkdownToHtml(
+  md: string,
+  facts: AdvisorFact[],
+): string {
   const normalized = normalizeGeminiMarkdown(md);
-  const linked = linkifyPropertyNames(normalized, facts);
+  const { text: linked, registry } = linkifyPropertyNames(normalized, facts);
 
   const lines = linked.split("\n");
   const htmlParts: string[] = [];
@@ -97,7 +155,7 @@ export function renderAdvisorMarkdownToHtml(md: string, facts: AdvisorFact[]): s
     if (trimmed.startsWith("## ")) {
       closeList();
       htmlParts.push(
-        `<h3 style="margin:1em 0 0.35em;font-size:1em;color:#111;">${renderInline(trimmed.slice(3))}</h3>`,
+        `<h3 style="margin:1em 0 0.35em;font-size:1em;color:#111;">${renderInline(trimmed.slice(3), registry)}</h3>`,
       );
       continue;
     }
@@ -108,7 +166,7 @@ export function renderAdvisorMarkdownToHtml(md: string, facts: AdvisorFact[]): s
         inList = true;
       }
       htmlParts.push(
-        `<li style="margin:0.3em 0;line-height:1.45;">${renderInline(trimmed.replace(/^[-*]\s/, ""))}</li>`,
+        `<li style="margin:0.3em 0;line-height:1.45;">${renderInline(trimmed.replace(/^[-*]\s/, ""), registry)}</li>`,
       );
       continue;
     }
@@ -120,7 +178,7 @@ export function renderAdvisorMarkdownToHtml(md: string, facts: AdvisorFact[]): s
 
     closeList();
     htmlParts.push(
-      `<p style="margin:0.35em 0;line-height:1.45;">${renderInline(trimmed)}</p>`,
+      `<p style="margin:0.35em 0;line-height:1.45;">${renderInline(trimmed, registry)}</p>`,
     );
   }
   closeList();

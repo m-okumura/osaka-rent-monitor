@@ -40,6 +40,7 @@ cancellationClass が review の物件では cancellationMailLabel / cancellatio
 物件名は JSON の propertyName をそのまま使う。**物件名** で強調してよい。
 Markdown のリンク [text](url) や URL は書かない（メール側で SUUMO リンクを付与する）。
 id フィールドを本文に繰り返さない。
+1行に複数物件を「/」で並べない。見送りは物件ごとに箇条書き1行。
 構成:
 1. 結論（おすすめ TOP2、各1〜3行）
 2. 見送り推奨（理由付き）
