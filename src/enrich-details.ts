@@ -1,6 +1,11 @@
 import { passesPrimaryAccessFilter } from "./access-filter.js";
 import { applyBuildingStructureConsensus } from "./building-structure.js";
 import { commuteHintToShinsaibashi } from "./commute-hints.js";
+import {
+  passesMinArea,
+  passesRcSrcRequirement,
+  passesRequiredEquipment,
+} from "./listing-requirements.js";
 import { fetchSuumoHtml } from "./suumo-client.js";
 import { parseSuumoDetailHtml } from "./parse-detail.js";
 import { scoreListing, sortByScore } from "./score.js";
@@ -10,6 +15,25 @@ const DETAIL_GAP_MS = 1500;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function passesHardDetailRequirements(listing: ScoredListing): boolean {
+  if (listing.tier === "exclude") return false;
+  if (!listing.detail) return false;
+
+  if (
+    !passesMinArea(listing.areaText, listing.detail.areaSqm ?? null)
+  ) {
+    return false;
+  }
+  if (!passesRequiredEquipment(listing.detail)) return false;
+
+  const kind =
+    listing.structureEffective ?? listing.detail.structureKind ?? "unknown";
+  const raw = listing.detail.structureRaw;
+  if (!passesRcSrcRequirement(kind, raw)) return false;
+
+  return true;
 }
 
 /** 通知対象のみ詳細 GET（1.5秒間隔）→ スコア付与 */
@@ -53,5 +77,15 @@ export async function enrichAndScoreListings(
         : [l.accessSummary],
     ),
   }));
-  return sortByScore(withCommute);
+
+  const qualified = withCommute.filter((l) => {
+    const ok = passesHardDetailRequirements(l);
+    if (!ok && l.detail) {
+      const name = l.detail.propertyName || l.buildingTitle;
+      console.log(`  詳細条件で除外: ${name}`);
+    }
+    return ok;
+  });
+
+  return sortByScore(qualified);
 }

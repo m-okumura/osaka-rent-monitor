@@ -1,4 +1,9 @@
 import * as cheerio from "cheerio";
+import { config } from "./config.js";
+import {
+  areaSqmFromListing,
+  isAllowedMadori,
+} from "./listing-requirements.js";
 import { parseYen, totalRentYen } from "./money.js";
 
 export type SuumoListing = {
@@ -93,16 +98,22 @@ export function parseResultCount(html: string): number | null {
   return Number.parseInt(m[1]!.replace(/,/g, ""), 10);
 }
 
-/** 要件: 1K・管理費込 5.5万以下（URL 絞り込みの再確認用） */
+/** 一覧段階の要件（PoC 再確認用） */
 export function filterListingsForMvp(
   listings: SuumoListing[],
-  opts: { madori?: string; maxTotalYen?: number } = {},
+  opts: {
+    maxTotalYen?: number;
+    minAreaSqm?: number;
+  } = {},
 ): SuumoListing[] {
-  const madori = opts.madori ?? "1K";
-  const maxTotalYen = opts.maxTotalYen ?? 55_000;
+  const maxTotalYen = opts.maxTotalYen ?? config.rentMaxTotal;
+  const minAreaSqm = opts.minAreaSqm ?? config.minAreaSqm;
   return listings.filter((l) => {
-    if (l.madori !== madori) return false;
+    if (!isAllowedMadori(l.madori)) return false;
     if (l.totalYen == null) return false;
-    return l.totalYen <= maxTotalYen;
+    if (l.totalYen > maxTotalYen) return false;
+    const area = areaSqmFromListing(l.areaText);
+    if (area != null && area < minAreaSqm) return false;
+    return true;
   });
 }

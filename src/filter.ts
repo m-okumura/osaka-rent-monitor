@@ -1,5 +1,9 @@
 import { passesPrimaryAccessFilter } from "./access-filter.js";
 import { config } from "./config.js";
+import {
+  areaSqmFromListing,
+  isAllowedMadori,
+} from "./listing-requirements.js";
 import type { SuumoListing } from "./parse-listings.js";
 import type { Listing } from "./types.js";
 
@@ -27,9 +31,11 @@ export function suumoRowToListing(
 }
 
 function passesCoreFilters(l: Listing): boolean {
-  if (l.madori !== config.madori) return false;
+  if (!isAllowedMadori(l.madori)) return false;
   if (l.totalYen > config.rentMaxTotal) return false;
   if (!l.buildingKind.includes("マンション")) return false;
+  const area = areaSqmFromListing(l.areaText);
+  if (area != null && area < config.minAreaSqm) return false;
   return true;
 }
 

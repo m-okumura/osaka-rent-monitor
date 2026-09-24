@@ -16,7 +16,8 @@ const SOUND_KEYWORDS = [
 export function classifyStructure(raw: string | null): StructureKind {
   if (!raw) return "unknown";
   const t = raw.replace(/\s/g, "");
-  if (/鉄筋|RC/i.test(t)) return "rc";
+  if (/鉄骨鉄筋|SRC/i.test(t)) return "rc";
+  if (/鉄筋|^RC/i.test(t)) return "rc";
   if (/軽量鉄骨/.test(t)) return "light_steel";
   if (/鉄骨/.test(t)) return "steel";
   if (/木造/.test(t)) return "other";

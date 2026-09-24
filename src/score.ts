@@ -1,3 +1,4 @@
+import { config } from "./config.js";
 import type { ParsedDetail } from "./parse-detail.js";
 import type { Listing, ScoredListing, StructureKind } from "./types.js";
 
@@ -7,7 +8,7 @@ export function parseWalkMinutes(accessLine: string): number | null {
   return parseInt(m[1]!, 10);
 }
 
-function parseAreaFromListText(areaText: string): number | null {
+export function parseAreaFromListText(areaText: string): number | null {
   const m = areaText.replace(/,/g, "").match(/([\d.]+)\s*m/i);
   if (!m) return null;
   const n = parseFloat(m[1]!);
@@ -128,9 +129,9 @@ export function scoreListing(
     reasons.push(`防音関連キーワード: ${sound.join("、")} (+${bonus})`);
   }
 
-  if (listing.totalYen <= 52000) {
+  if (listing.totalYen <= config.rentMaxTotal - 5000) {
     score += 3;
-    reasons.push("家賃込みが余裕あり (+3)");
+    reasons.push("家賃込みが予算内で余裕 (+3)");
   }
 
   let tier: ScoredListing["tier"] = "neutral";

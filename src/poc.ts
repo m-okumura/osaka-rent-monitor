@@ -11,7 +11,9 @@ async function runTarget(target: (typeof SEARCH_TARGETS)[number]) {
 
   console.log(`\n=== ${target.label} ===`);
   console.log(`URL: ${target.listUrl}`);
-  console.log(`parsed rows: ${all.length}, 1K & ≤5.5万(込): ${matched.length}`);
+  console.log(
+    `parsed rows: ${all.length}, 一覧要件一致: ${matched.length}`,
+  );
 
   const sample = matched.slice(0, 3);
   for (const l of sample) {
@@ -29,7 +31,7 @@ async function main() {
     total += await runTarget(t);
   }
 
-  console.log(`\n合計（両エリア）フィルタ後: ${total} 件`);
+  console.log(`\n合計（全エリア）一覧フィルタ後: ${total} 件`);
   if (total < POC_MIN) {
     console.error(`PoC 未達: 成功基準は ${POC_MIN} 件以上`);
     process.exit(1);

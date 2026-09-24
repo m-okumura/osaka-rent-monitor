@@ -15,7 +15,7 @@ export type CollectResult = {
   summaries: AreaFetchSummary[];
 };
 
-/** 今里・あびこの固定 URL を順に取得し、ID で重複除去 */
+/** 監視対象駅の固定 URL を順に取得し、ID で重複除去 */
 export async function collectListings(): Promise<CollectResult> {
   const summaries: AreaFetchSummary[] = [];
   const byId = new Map<string, Listing>();

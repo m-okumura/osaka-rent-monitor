@@ -37,7 +37,7 @@ jobs:
           NOTIFY_PROVIDER: resend
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          RENT_MAX_TOTAL: "55000"
+          RENT_MAX_TOTAL: "85000"
           NOTIFY_ON_FIRST_RUN: "false"
           SNAPSHOT_EMAIL: ${{ github.event_name == 'workflow_dispatch' && inputs.snapshot_email == true && 'true' || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

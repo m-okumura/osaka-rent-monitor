@@ -53,7 +53,7 @@
 
 | `NOTIFY_PROVIDER` | `resend` |
 
-| `RENT_MAX_TOTAL` | `55000` |
+| `RENT_MAX_TOTAL` | `85000` |
 
 | `NOTIFY_ON_FIRST_RUN` | `false` |
 

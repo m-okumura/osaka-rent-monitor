@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { formatSearchConditionsShort } from "../listing-requirements.js";
 import type { AreaFetchSummary, ScoredListing } from "../types.js";
 import type { MailContext } from "./types.js";
 
@@ -116,7 +116,7 @@ function buildListingsMail(options: {
   const advisorBlock = context.advisorHtml ?? "";
   const html = `
     ${introHtml}
-    <p style="color: #444;">条件: ${escapeHtml(config.madori)} / 管理費込 ${config.rentMaxTotal.toLocaleString("ja-JP")} 円以下 / v1: 詳細ページから構造・キーワード取得</p>
+    <p style="color: #444;">条件: ${escapeHtml(formatSearchConditionsShort())}（設備・RC/SRC は詳細で確認）</p>
     <p style="color: #444;">${renderSummaries(context.summaries)}</p>
     <p style="color: #444;">フィルタ後の該当: ${context.matchedCount} 件 / このメール: ${listings.length} 件</p>
     ${advisorBlock}

@@ -26,7 +26,9 @@
 | 変数 | 説明 |
 |------|------|
 | `RESEND_API_KEY` / `MAIL_TO` | 通知（Actions Secrets） |
-| `RENT_MAX_TOTAL` | 管理費込上限（デフォルト 55000） |
+| `RENT_MAX_TOTAL` | 管理費込上限（デフォルト 85000） |
+| `MIN_AREA_SQM` | 専有面積下限（デフォルト 28） |
+| `MADORI` | 許可間取り（デフォルト `1K,1DK,1LDK`） |
 | `NOTIFY_PROVIDER` | `resend`（デフォルト） |
 | `NOTIFY_ON_FIRST_RUN` | `true` で初回も通知 |
 | `SNAPSHOT_EMAIL` | `true` で差分無視の一覧メール |

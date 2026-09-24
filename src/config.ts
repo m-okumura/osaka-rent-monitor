@@ -48,11 +48,29 @@ function optionalEnv(name: string): string | undefined {
   return raw || undefined;
 }
 
+function parseMadoriList(raw: string | undefined): string[] {
+  const source = raw?.trim() || "1K,1DK,1LDK";
+  const items = source
+    .split(/[,、/|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (items.length === 0) {
+    throw new Error("環境変数 MADORI に有効な間取りがありません");
+  }
+  return items;
+}
+
 export const config = {
   statePath: process.env.STATE_PATH ?? ".data/state.json",
   /** 家賃+管理費の上限（円） */
-  rentMaxTotal: optionalInt("RENT_MAX_TOTAL") ?? 55_000,
-  madori: process.env.MADORI?.trim() || "1K",
+  rentMaxTotal: optionalInt("RENT_MAX_TOTAL") ?? 85_000,
+  /** 専有面積の下限（㎡）。一覧に無い場合は詳細で再判定 */
+  minAreaSqm: optionalInt("MIN_AREA_SQM") ?? 28,
+  madoriAllowed: parseMadoriList(process.env.MADORI),
+  /** @deprecated 表示互換。先頭の許可間取り */
+  get madori(): string {
+    return this.madoriAllowed[0] ?? "1K";
+  },
   notifyOnFirstRun: process.env.NOTIFY_ON_FIRST_RUN === "true",
   snapshotEmail: process.env.SNAPSHOT_EMAIL === "true",
   detailFetchEnabled: process.env.DETAIL_FETCH !== "false",
