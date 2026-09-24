@@ -1,8 +1,26 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "../config.js";
+import { formatSearchConditionsShort } from "../listing-requirements.js";
 import type { ScoredListing } from "../types.js";
 import { toAdvisorFacts, type AdvisorFact } from "./facts.js";
 import { renderAdvisorMarkdownToHtml } from "./markdown-email.js";
+
+function budgetManYenLabel(): string {
+  return (config.rentMaxTotal / 10_000).toLocaleString("ja-JP", {
+    maximumFractionDigits: 1,
+  });
+}
+
+function advisorCriteriaText(): string {
+  const budgetMan = budgetManYenLabel();
+  return [
+    `予算: 管理費込${budgetMan}万円以下（listings はこの範囲で抽出済み）`,
+    "希望エリア: 本町・江坂・谷町四丁目など、職住近接または利便性を重視",
+    "監視駅（searchArea）: 今里・あびこ・谷町四丁目・本町・江坂",
+    `物件の硬条件: ${formatSearchConditionsShort()}`,
+    "防音は加点要素。解約・違約金は cancellationClass / cancellationMailLabel を参照し断定しない",
+  ].join("。");
+}
 
 /** 404 になった旧モデルは含めない。503 時はリトライ後に次へ */
 const MODEL_FALLBACKS = [
@@ -43,8 +61,7 @@ function isNotFoundError(msg: string): boolean {
 function factsToPrompt(facts: AdvisorFact[]): string {
   return JSON.stringify(
     {
-      criteria:
-        "大阪・あびこ/今里、1K、管理費込5.5万以下、RC優先、防音重視、心斎橋通勤、短期解約は要確認",
+      criteria: advisorCriteriaText(),
       listings: facts,
     },
     null,
@@ -52,7 +69,10 @@ function factsToPrompt(facts: AdvisorFact[]): string {
   );
 }
 
-const SYSTEM_INSTRUCTION = `あなたは大阪賃貸の選定アドバイザーです。
+function systemInstruction(): string {
+  const budgetMan = budgetManYenLabel();
+  return `あなたは大阪賃貸の選定アドバイザーです。
+ユーザーの前提: 管理費込${budgetMan}万円以下（totalYen）。本町・江坂・谷町四丁目周辺は職住近接・利便性を重視する希望エリア。同等の物件なら searchArea / stationAccess からこれらに該当する物件を TOP おすすめに優先する。今里・あびこは監視対象だが、通勤・家賃のバランス案として位置づけてよい。
 入力 JSON の listings だけを根拠にしてください。JSON に無い事実（構造、平米、家賃など）を捏造しないでください。
 構造のおすすめ判定は structureEffective を正とし、structureKind（掲載表記）は参考に留めてください。
 structureConflict が true、または structureTrust が conflict_safe_side の物件は、掲載が RC でも RC として TOP おすすめに入れないでください（structureEffective が rc でない限り）。
@@ -68,6 +88,7 @@ id フィールドを本文に繰り返さない。
 1. 結論（おすすめ TOP2、各1〜3行）
 2. 見送り推奨（理由付き）
 3. 次のアクション（不動産会社への質問例2つ）`;
+}
 
 /** 503 が続く 3.x の前に、比較的安定な 2.0 を1巡挟む */
 const STABLE_AFTER_PREFERRED = [
@@ -93,7 +114,7 @@ async function generateWithModelOnce(
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: modelName,
-    systemInstruction: SYSTEM_INSTRUCTION,
+    systemInstruction: systemInstruction(),
   });
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
