@@ -60,7 +60,7 @@ export const config = {
   notifyProvider,
   gemini: {
     apiKey: () => optionalEnv("GEMINI_API_KEY"),
-    model: optionalEnv("GEMINI_MODEL") ?? "gemini-3.6-flash",
+    model: optionalEnv("GEMINI_MODEL") ?? "gemini-3.8-flash",
   },
   notify: {
     to: () => requireEnv("MAIL_TO"),
