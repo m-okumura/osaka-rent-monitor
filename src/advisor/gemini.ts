@@ -5,8 +5,8 @@ import { toAdvisorFacts, type AdvisorFact } from "./facts.js";
 
 /** API 廃止時のフォールバック（先頭から試行） */
 const MODEL_FALLBACKS = [
-  "gemini-2.5-flash",
   "gemini-3.6-flash",
+  "gemini-2.5-flash",
   "gemini-1.5-flash",
 ] as const;
 
