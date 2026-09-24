@@ -31,5 +31,8 @@
 | `NOTIFY_ON_FIRST_RUN` | `true` で初回も通知 |
 | `SNAPSHOT_EMAIL` | `true` で差分無視の一覧メール |
 | `STATE_PATH` | デフォルト `.data/state.json` |
+| `GEMINI_API_KEY` | v1 AI 選定（任意） |
+| `AI_ADVISOR` | `false` で Gemini オフ |
+| `DETAIL_FETCH` | `false` で詳細 GET オフ |
 
 詳細: `docs/operations-github-actions.md`

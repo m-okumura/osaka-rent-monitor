@@ -1,8 +1,37 @@
 import path from "node:path";
+import { generateGeminiAdvice } from "./advisor/gemini.js";
 import { collectListings } from "./collect-listings.js";
 import { config } from "./config.js";
+import { enrichAndScoreListings } from "./enrich-details.js";
 import { createNotifier, isNotifierConfigured } from "./notify/index.js";
 import { diffListingIds, loadState, saveState } from "./state.js";
+import type { Listing, ScoredListing } from "./types.js";
+
+async function prepareForMail(raw: Listing[]): Promise<{
+  scored: ScoredListing[];
+  advisorHtml: string;
+}> {
+  if (!config.detailFetchEnabled || raw.length === 0) {
+    const scored = raw.map((l) => ({
+      ...l,
+      score: 0,
+      tier: "neutral" as const,
+      scoreReasons: ["詳細未取得"],
+    }));
+    return { scored, advisorHtml: "" };
+  }
+
+  console.log(`詳細ページ取得 (${raw.length} 件)…`);
+  const scored = await enrichAndScoreListings(raw);
+
+  console.log("AI アドバイス生成…");
+  const advisor = await generateGeminiAdvice(scored);
+  if (advisor.skipped) {
+    console.log(`AI スキップ: ${advisor.reason ?? "不明"}`);
+  }
+
+  return { scored, advisorHtml: advisor.html };
+}
 
 async function main(): Promise<void> {
   const statePath = path.resolve(process.cwd(), config.statePath);
@@ -10,10 +39,6 @@ async function main(): Promise<void> {
 
   console.log("大阪 SUUMO 賃貸監視を開始します…");
   const { listings, summaries } = await collectListings();
-  const mailContext = {
-    summaries,
-    matchedCount: listings.length,
-  };
 
   for (const s of summaries) {
     console.log(
@@ -25,10 +50,16 @@ async function main(): Promise<void> {
   const currentIds = listings.map((l) => l.id);
 
   if (config.snapshotEmail) {
+    const { scored, advisorHtml } = await prepareForMail(listings);
+    const mailContext = {
+      summaries,
+      matchedCount: listings.length,
+      advisorHtml,
+    };
     console.log(
-      `スナップショット: ${listings.length} 件をメール送信します（${config.notifyProvider}）`,
+      `スナップショット: ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
     );
-    await notifier.sendSnapshot(listings, mailContext);
+    await notifier.sendSnapshot(scored, mailContext);
     await saveState(statePath, currentIds);
     return;
   }
@@ -54,10 +85,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  const { scored, advisorHtml } = await prepareForMail(newListings);
+  const mailContext = {
+    summaries,
+    matchedCount: listings.length,
+    advisorHtml,
+  };
+
   console.log(
-    `新規 ${newListings.length} 件をメール送信します（${config.notifyProvider}）`,
+    `新規 ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
   );
-  await notifier.sendNewListings(newListings, mailContext);
+  await notifier.sendNewListings(scored, mailContext);
 }
 
 main().catch(async (error) => {

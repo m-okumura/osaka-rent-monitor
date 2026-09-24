@@ -15,6 +15,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -39,4 +40,6 @@ jobs:
           RENT_MAX_TOTAL: "55000"
           NOTIFY_ON_FIRST_RUN: "false"
           SNAPSHOT_EMAIL: ${{ github.event_name == 'workflow_dispatch' && inputs.snapshot_email == true && 'true' || 'false' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_ADVISOR: "true"
         run: npm run check
