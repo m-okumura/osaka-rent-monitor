@@ -47,7 +47,9 @@ function renderNotifyByBands(prepared: PreparedComparisonReport): string {
     parts.push(
       `<h3>${escapeHtml(title)} <span class="hint">${escapeHtml(hint)}</span></h3>`,
     );
-    parts.push(renderHorizontalComparisonMatrix(list, "document"));
+    parts.push(renderHorizontalComparisonMatrix(list, "document", {
+      omitEmptyRows: true,
+    }));
   }
   return parts.join("\n");
 }
@@ -162,7 +164,7 @@ ${renderNotifyByBands(prepared)}
 
 <h2>見送り（統合後 ${passed.length} 件）</h2>
 ${reasonsListHtml(passed)}
-${renderHorizontalComparisonMatrix(passed, "document")}
+${renderHorizontalComparisonMatrix(passed, "document", { omitEmptyRows: true })}
 
 <p class="footnote">※ SUUMO 詳細 data_table の項目を横並びにしたものです。</p>
 </body>

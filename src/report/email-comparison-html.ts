@@ -5,7 +5,11 @@ import {
   type ActionBand,
 } from "./action-bands.js";
 import { listingDisplayName } from "./build-comparison-report-shared.js";
-import { renderHorizontalComparisonMatrix } from "./comparison-matrix-html.js";
+import {
+  renderHorizontalComparisonMatrix,
+  renderLiteComparisonMatrixEmail,
+  renderPropertyCardsEmail,
+} from "./comparison-matrix-html.js";
 import type { PreparedComparisonReport } from "./prepare-comparison.js";
 import type { SanitizedComparisonEntry } from "./comparison-sanitize.js";
 
@@ -37,8 +41,13 @@ function renderBandBlock(
   const { title, hint } = ACTION_BAND_HEADINGS[band];
   return `<section style="margin:1.4em 0;">
 <h3 style="font-size:1em;margin:0 0 4px;">${escapeHtml(title)}（${listings.length} 件）</h3>
-<p style="margin:0 0 8px;color:#666;font-size:0.9em;">${escapeHtml(hint)} · 列＝物件、行＝項目（横スクロール）</p>
-${renderHorizontalComparisonMatrix(listings, "email")}
+<p style="margin:0 0 8px;color:#666;font-size:0.9em;">${escapeHtml(hint)}</p>
+<p style="margin:0 0 6px;font-size:0.85em;color:#888;">📱 サクッと見る（1物件1カード）</p>
+${renderPropertyCardsEmail(listings)}
+<p style="margin:12px 0 6px;font-size:0.85em;color:#888;">主要項目（横並び · 5行まで）</p>
+${renderLiteComparisonMatrixEmail(listings)}
+<p style="margin:12px 0 6px;font-size:0.85em;color:#888;">全項目（空欄行は非表示 · 横スクロール）</p>
+${renderHorizontalComparisonMatrix(listings, "email", { omitEmptyRows: true })}
 </section>`;
 }
 
@@ -66,7 +75,8 @@ export function renderMailComparisonHtml(
       ? `<section style="margin:1.6em 0;">
 <h2 style="font-size:1.05em;margin:0 0 8px;">見送り（${prepared.passed.length} 件）</h2>
 ${passedReasonsHtml(prepared.passed)}
-${renderHorizontalComparisonMatrix(prepared.passed, "email")}
+${renderPropertyCardsEmail(prepared.passed)}
+${renderHorizontalComparisonMatrix(prepared.passed, "email", { omitEmptyRows: true })}
 </section>`
       : "";
 

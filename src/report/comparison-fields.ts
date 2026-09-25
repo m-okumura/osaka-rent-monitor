@@ -140,3 +140,31 @@ export function formatCell(
 ): string {
   return dash(row.value(l), maxLen ?? (row.label === "保証会社" ? 200 : 140));
 }
+
+/** スマホ向け軽量ビュー（メール上部） */
+export const COMPARISON_LITE_ROW_LABELS = [
+  "間取り",
+  "専有面積",
+  "家賃+管理費",
+  "最寄り",
+  "解約・違約金",
+] as const;
+
+export function comparisonLiteRowDefs(): ComparisonRowDef[] {
+  const set = new Set<string>(COMPARISON_LITE_ROW_LABELS);
+  return COMPARISON_ROW_DEFS.filter((r) => set.has(r.label));
+}
+
+export function rowHasAnyData(
+  listings: ScoredListing[],
+  row: ComparisonRowDef,
+): boolean {
+  return listings.some((l) => formatCell(l, row) !== "—");
+}
+
+export function rowsWithDataForListings(
+  listings: ScoredListing[],
+  rows: ComparisonRowDef[],
+): ComparisonRowDef[] {
+  return rows.filter((row) => rowHasAnyData(listings, row));
+}

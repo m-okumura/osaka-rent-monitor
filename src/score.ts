@@ -1,3 +1,4 @@
+import { areaScoreFromSearchArea } from "./area-preference.js";
 import { config } from "./config.js";
 import type { ParsedDetail } from "./parse-detail.js";
 import type { Listing, ScoredListing, StructureKind } from "./types.js";
@@ -132,6 +133,12 @@ export function scoreListing(
   if (listing.totalYen <= config.rentMaxTotal - 5000) {
     score += 3;
     reasons.push("家賃込みが予算内で余裕 (+3)");
+  }
+
+  const areaPref = areaScoreFromSearchArea(listing.searchArea);
+  if (areaPref.delta !== 0 && areaPref.reason) {
+    score += areaPref.delta;
+    reasons.push(`エリア: ${areaPref.reason}`);
   }
 
   let tier: ScoredListing["tier"] = "neutral";
