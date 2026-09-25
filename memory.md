@@ -9,6 +9,7 @@
 - Gemini プロンプト: 荻窪南口ライク・生活動線・心斎橋徒歩こだわり低めを `advisor/gemini.ts`。facts に equipmentTags / appealTexts
 - 監視駅追加: 昭和町 `ek_18770` / 玉造 `ek_23520` / 中津 `ek_27221`
 - 横断レポート: 新規/スナップショット通知時に **Markdown 添付** + `.data/reports/` 保存（`src/report/`）。おすすめ/見送りを data_table 項目で横並び比較
+- 横断レポート修正: `comparison-fields` の `value: () => l.xxx` クロージャで全列が先頭物件化していた → `COMPARISON_ROW_DEFS` で `(listing) =>` に修正。同一 `detailUrl` は dedupe
 
 ## 2026-09-24
 

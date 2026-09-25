@@ -1,9 +1,6 @@
 import type { ScoredListing } from "../types.js";
 import { formatSearchConditionsShort } from "../listing-requirements.js";
-import {
-  comparisonRowsForListing,
-  formatCell,
-} from "./comparison-fields.js";
+import { COMPARISON_ROW_DEFS, formatCell } from "./comparison-fields.js";
 
 export type ComparisonReportEntry = ScoredListing & {
   reportBucket: "notify" | "passed_over";
@@ -18,7 +15,23 @@ function propertyColumnTitle(l: ScoredListing): string {
   const name = l.detail?.propertyName || l.buildingTitle || l.id;
   const short =
     name.length > 28 ? `${name.slice(0, 28)}…` : name;
-  return `${short} (${l.madori})`;
+  const floor = l.floor.trim() ? ` ${l.floor}` : "";
+  return `${short} (${l.madori}${floor})`;
+}
+
+/** 同一詳細 URL の重複列を除く（一覧の建物名違い同一部屋対策） */
+function dedupeByDetailUrl(
+  entries: ComparisonReportEntry[],
+): ComparisonReportEntry[] {
+  const seen = new Set<string>();
+  const out: ComparisonReportEntry[] = [];
+  for (const e of entries) {
+    const key = e.detailUrl.split("?")[0] ?? e.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(e);
+  }
+  return out;
 }
 
 function buildMatrixTable(listings: ScoredListing[]): string {
@@ -26,7 +39,7 @@ function buildMatrixTable(listings: ScoredListing[]): string {
     return "_（該当なし）_\n";
   }
 
-  const rowDefs = comparisonRowsForListing(listings[0]!);
+  const rowDefs = COMPARISON_ROW_DEFS;
   const headers = ["項目", ...listings.map(propertyColumnTitle)];
   const lines = [
     `| ${headers.map(escapeMdCell).join(" | ")} |`,
@@ -61,8 +74,12 @@ export function buildComparisonReportMarkdown(options: {
 }): string {
   const { generatedAt, entries, mode } = options;
   const stamp = generatedAt.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-  const notify = entries.filter((e) => e.reportBucket === "notify");
-  const passed = entries.filter((e) => e.reportBucket === "passed_over");
+  const notify = dedupeByDetailUrl(
+    entries.filter((e) => e.reportBucket === "notify"),
+  );
+  const passed = dedupeByDetailUrl(
+    entries.filter((e) => e.reportBucket === "passed_over"),
+  );
 
   const intro =
     mode === "snapshot"

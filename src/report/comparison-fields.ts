@@ -47,42 +47,89 @@ function dash(v: string | null | undefined, maxLen = 140): string {
   return `${t.slice(0, maxLen)}…`;
 }
 
-export function comparisonRowsForListing(l: ScoredListing): ComparisonRowDef[] {
-  const d = l.detail;
-  const t = d?.dataTable;
-  return [
-    { label: "間取り", value: () => l.madori },
-    { label: "間取り詳細", value: () => t?.madoriDetail ?? null },
-    { label: "専有面積", value: () => (d?.areaSqm != null ? `${d.areaSqm}㎡` : l.areaText) },
-    { label: "家賃+管理費", value: () => `${l.totalYen.toLocaleString("ja-JP")}円` },
-    { label: "最寄り", value: () => d?.stationAccess[0] ?? l.accessSummary },
-    { label: "監視エリア", value: () => l.searchArea },
-    { label: "構造", value: () => t?.structure ?? d?.structureRaw ?? null },
-    { label: "階建", value: () => t?.floors ?? null },
-    { label: "築年月", value: () => t?.builtYm ?? null },
-    { label: "エネルギー消費性能", value: () => t?.energyConsumption ?? null },
-    { label: "断熱性能", value: () => t?.insulation ?? null },
-    { label: "目安光熱費", value: () => t?.estimatedUtility ?? null },
-    { label: "損保", value: () => t?.insurance ?? null },
-    { label: "駐車場", value: () => t?.parking ?? null },
-    { label: "入居", value: () => t?.moveIn ?? null },
-    { label: "取引態様", value: () => t?.transactionType ?? null },
-    { label: "条件", value: () => t?.conditions ?? null },
-    { label: "取り扱い店舗物件コード", value: () => t?.shopPropertyCode ?? null },
-    { label: "SUUMO物件コード", value: () => t?.suumoPropertyCode ?? l.id },
-    { label: "総戸数", value: () => t?.totalUnits ?? null },
-    { label: "情報更新日", value: () => t?.infoUpdatedAt ?? null },
-    { label: "次回更新予定日", value: () => t?.nextUpdateAt ?? null },
-    { label: "契約期間", value: () => t?.contractTerm ?? d?.contractTerm ?? null },
-    {
-      label: "保証会社",
-      value: () => t?.guarantorCompany ?? null,
-    },
-    { label: "解約・違約金", value: () => d?.cancellationMailLabel ?? null },
-    { label: "スコア / tier", value: () => `${l.score} / ${l.tier}` },
-    { label: "詳細URL", value: () => l.detailUrl },
-  ];
-}
+/** 比較表の行定義（各列は引数の ScoredListing から値を取る） */
+export const COMPARISON_ROW_DEFS: ComparisonRowDef[] = [
+  { label: "間取り", value: (l) => l.madori },
+  {
+    label: "間取り詳細",
+    value: (l) => l.detail?.dataTable.madoriDetail ?? null,
+  },
+  {
+    label: "専有面積",
+    value: (l) =>
+      l.detail?.areaSqm != null ? `${l.detail.areaSqm}㎡` : l.areaText,
+  },
+  {
+    label: "家賃+管理費",
+    value: (l) => `${l.totalYen.toLocaleString("ja-JP")}円`,
+  },
+  {
+    label: "最寄り",
+    value: (l) => l.detail?.stationAccess[0] ?? l.accessSummary,
+  },
+  { label: "監視エリア", value: (l) => l.searchArea },
+  {
+    label: "構造",
+    value: (l) =>
+      l.detail?.dataTable.structure ??
+      l.detail?.structureRaw ??
+      null,
+  },
+  { label: "階建", value: (l) => l.detail?.dataTable.floors ?? null },
+  { label: "築年月", value: (l) => l.detail?.dataTable.builtYm ?? null },
+  {
+    label: "エネルギー消費性能",
+    value: (l) => l.detail?.dataTable.energyConsumption ?? null,
+  },
+  {
+    label: "断熱性能",
+    value: (l) => l.detail?.dataTable.insulation ?? null,
+  },
+  {
+    label: "目安光熱費",
+    value: (l) => l.detail?.dataTable.estimatedUtility ?? null,
+  },
+  { label: "損保", value: (l) => l.detail?.dataTable.insurance ?? null },
+  { label: "駐車場", value: (l) => l.detail?.dataTable.parking ?? null },
+  { label: "入居", value: (l) => l.detail?.dataTable.moveIn ?? null },
+  {
+    label: "取引態様",
+    value: (l) => l.detail?.dataTable.transactionType ?? null,
+  },
+  { label: "条件", value: (l) => l.detail?.dataTable.conditions ?? null },
+  {
+    label: "取り扱い店舗物件コード",
+    value: (l) => l.detail?.dataTable.shopPropertyCode ?? null,
+  },
+  {
+    label: "SUUMO物件コード",
+    value: (l) => l.detail?.dataTable.suumoPropertyCode ?? l.id,
+  },
+  { label: "総戸数", value: (l) => l.detail?.dataTable.totalUnits ?? null },
+  {
+    label: "情報更新日",
+    value: (l) => l.detail?.dataTable.infoUpdatedAt ?? null,
+  },
+  {
+    label: "次回更新予定日",
+    value: (l) => l.detail?.dataTable.nextUpdateAt ?? null,
+  },
+  {
+    label: "契約期間",
+    value: (l) =>
+      l.detail?.dataTable.contractTerm ?? l.detail?.contractTerm ?? null,
+  },
+  {
+    label: "保証会社",
+    value: (l) => l.detail?.dataTable.guarantorCompany ?? null,
+  },
+  {
+    label: "解約・違約金",
+    value: (l) => l.detail?.cancellationMailLabel ?? null,
+  },
+  { label: "スコア / tier", value: (l) => `${l.score} / ${l.tier}` },
+  { label: "詳細URL", value: (l) => l.detailUrl },
+];
 
 export function formatCell(
   l: ScoredListing,
