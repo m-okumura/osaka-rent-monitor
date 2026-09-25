@@ -36,7 +36,7 @@
 | `GEMINI_API_KEY` | v1 AI 選定（任意） |
 | `AI_ADVISOR` | `false` で Gemini オフ |
 | `DETAIL_FETCH` | `false` で詳細 GET オフ |
-| `COMPARISON_REPORT` | `false` で比較 Markdown 添付オフ（デフォルト ON） |
+| `COMPARISON_REPORT` | `false` で比較 HTML 添付オフ（デフォルト ON） |
 | `REPORTS_DIR` | 比較レポート保存先（デフォルト `.data/reports`） |
 | `ACCESS_FILTER` | `false` で最寄り私鉄除外オフ |
 

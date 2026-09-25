@@ -3,7 +3,7 @@ import path from "node:path";
 import { config } from "../config.js";
 import type { MailAttachment } from "../notify/types.js";
 import {
-  buildComparisonReportMarkdown,
+  buildComparisonReportHtml,
   comparisonReportFilename,
   type ComparisonReportEntry,
 } from "./build-comparison-report.js";
@@ -17,7 +17,7 @@ export async function buildComparisonMailAttachment(options: {
   }
 
   const generatedAt = new Date();
-  const content = buildComparisonReportMarkdown({
+  const content = buildComparisonReportHtml({
     generatedAt,
     entries: options.entries,
     mode: options.mode,
@@ -28,5 +28,9 @@ export async function buildComparisonMailAttachment(options: {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, filename), content, "utf-8");
 
-  return { filename, content };
+  return {
+    filename,
+    content,
+    contentType: "text/html; charset=utf-8",
+  };
 }

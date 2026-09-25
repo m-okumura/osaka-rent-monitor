@@ -116,7 +116,7 @@ function buildListingsMail(options: {
   const advisorBlock = context.advisorHtml ?? "";
   const attachmentNote =
     context.attachments && context.attachments.length > 0
-      ? `<p style="color: #444;">📎 横断比較レポート（Markdown）: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
+      ? `<p style="color: #444;">📎 横断比較レポート（HTML・添付を開くと表で比較）: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
       : "";
   const html = `
     ${introHtml}
