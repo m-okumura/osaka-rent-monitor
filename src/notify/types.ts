@@ -1,4 +1,5 @@
 import type { AreaFetchSummary, ScoredListing } from "../types.js";
+import type { PreparedComparisonReport } from "../report/prepare-comparison.js";
 
 export type MailAttachment = {
   filename: string;
@@ -11,6 +12,8 @@ export type MailContext = {
   matchedCount: number;
   advisorHtml?: string;
   attachments?: MailAttachment[];
+  /** 横断比較（統合・A/B/C 区分済み）。メール本文の表に使用 */
+  comparisonReport?: PreparedComparisonReport;
 };
 
 export type Notifier = {

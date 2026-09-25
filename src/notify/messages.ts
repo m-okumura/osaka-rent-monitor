@@ -1,4 +1,5 @@
 import { formatSearchConditionsShort } from "../listing-requirements.js";
+import { renderMailComparisonHtml } from "../report/email-comparison-html.js";
 import type { AreaFetchSummary, ScoredListing } from "../types.js";
 import type { MailContext } from "./types.js";
 
@@ -8,19 +9,6 @@ export function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function tierLabel(tier: ScoredListing["tier"]): string {
-  switch (tier) {
-    case "recommended":
-      return "◎";
-    case "caution":
-      return "△";
-    case "exclude":
-      return "×";
-    default:
-      return "○";
-  }
 }
 
 function formatRentLine(listing: ScoredListing): string {
@@ -55,27 +43,8 @@ function renderSummaries(summaries: AreaFetchSummary[]): string {
   return lines.join("<br>");
 }
 
-function renderScoreboard(listings: ScoredListing[]): string {
-  const top = [...listings]
-    .filter((l) => l.tier !== "exclude")
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-  if (top.length === 0) return "";
-
-  const rows = top
-    .map((l) => {
-      const name = l.detail?.propertyName || l.buildingTitle || l.address;
-      return `<li>${tierLabel(l.tier)} スコア ${l.score} — <a href="${escapeHtml(l.detailUrl)}">${escapeHtml(name)}</a>（${escapeHtml(formatRentLine(l))}）</li>`;
-    })
-    .join("");
-
-  return `<section style="margin:1em 0;">
-<h3 style="font-size:1em;">ルールスコア TOP（参考）</h3>
-<ul style="margin:0;padding-left:1.2em;">${rows}</ul>
-</section>`;
-}
-
-function renderListingsBody(listings: ScoredListing[]): string {
+/** 比較表が無いときのフォールバック（詳細付き一覧） */
+function renderListingsFallback(listings: ScoredListing[]): string {
   const sorted = [...listings].sort((a, b) => b.score - a.score);
   const rows = sorted
     .map((listing) => {
@@ -83,19 +52,11 @@ function renderListingsBody(listings: ScoredListing[]): string {
         listing.detail?.propertyName || listing.buildingTitle || listing.address;
       const access =
         listing.detail?.stationAccess[0] ?? listing.accessSummary;
-      const flags: string[] = [];
-      if (listing.detail?.cancellationMailLabel) {
-        flags.push(listing.detail.cancellationMailLabel);
-      }
-      if (listing.detail?.soundKeywords.length) {
-        flags.push(`防音KW: ${listing.detail.soundKeywords.join("・")}`);
-      }
       return `<li style="margin: 0.5em 0;">
-        <strong>${tierLabel(listing.tier)} ${listing.score}点</strong>
+        <strong>${listing.score}点</strong>
         <a href="${escapeHtml(listing.detailUrl)}" style="color: #0b57d0;">${escapeHtml(title)}</a>
         <span style="color:#333;"> — ${escapeHtml(formatRentLine(listing))}</span>
-        <br><span style="color:#666;font-size:0.9em;">${escapeHtml(access)} / ${escapeHtml(listing.searchArea)}</span>
-        ${flags.length ? `<br><span style="color:#666;font-size:0.85em;">${escapeHtml(flags.join(" / "))}</span>` : ""}
+        <br><span style="color:#666;font-size:0.9em;">${escapeHtml(access)}</span>
       </li>`;
     })
     .join("\n");
@@ -114,19 +75,23 @@ function buildListingsMail(options: {
 }): { subject: string; html: string } {
   const { introHtml, listings, context, subjectPrefix } = options;
   const advisorBlock = context.advisorHtml ?? "";
+  const comparisonBlock = renderMailComparisonHtml(context.comparisonReport);
   const attachmentNote =
     context.attachments && context.attachments.length > 0
-      ? `<p style="color: #444;">📎 横断比較レポート（HTML・添付を開くと表で比較）: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
+      ? `<p style="color: #888;font-size:0.85em;">📎 全項目の横並び比較: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
       : "";
+  const listingFallback =
+    comparisonBlock.length === 0 ? renderListingsFallback(listings) : "";
+
   const html = `
     ${introHtml}
     <p style="color: #444;">条件: ${escapeHtml(formatSearchConditionsShort())}（設備・RC/SRC は詳細で確認）</p>
     <p style="color: #444;">${renderSummaries(context.summaries)}</p>
-    <p style="color: #444;">フィルタ後の該当: ${context.matchedCount} 件 / このメール: ${listings.length} 件</p>
+    <p style="color: #444;">フィルタ後の該当: ${context.matchedCount} 件 / 通知対象: ${listings.length} 件</p>
+    ${comparisonBlock}
     ${attachmentNote}
     ${advisorBlock}
-    ${renderScoreboard(listings)}
-    ${renderListingsBody(listings)}
+    ${listingFallback}
   `;
 
   return {
@@ -140,7 +105,7 @@ export function buildNewListingsMail(
   context: MailContext,
 ): { subject: string; html: string } {
   return buildListingsMail({
-    introHtml: `<p>SUUMO 賃貸の<strong>新規差分</strong>です（${listings.length} 件）。詳細・スコア・AI メモ付き。見送り含む比較表は添付 Markdown を参照。</p>`,
+    introHtml: `<p>SUUMO 賃貸の<strong>新規差分</strong>です（${listings.length} 件）。下の比較表と AI メモを参照。</p>`,
     listings,
     context,
     subjectPrefix: "新規差分",
@@ -153,7 +118,7 @@ export function buildSnapshotMail(
 ): { subject: string; html: string } {
   return buildListingsMail({
     introHtml:
-      "<p>SUUMO 賃貸の<strong>現時点</strong>一覧です（詳細・スコア・AI メモ付き）。比較表は添付 Markdown。</p>",
+      "<p>SUUMO 賃貸の<strong>現時点</strong>一覧です。下の比較表（A/B/C）と AI メモを参照。</p>",
     listings,
     context,
     subjectPrefix: "現時点",

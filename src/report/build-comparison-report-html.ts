@@ -5,8 +5,14 @@ import {
   formatCell,
   type ComparisonRowDef,
 } from "./comparison-fields.js";
-import type { ComparisonReportEntry } from "./comparison-report-entry.js";
-import { dedupeByDetailUrl, propertyColumnTitle } from "./build-comparison-report-shared.js";
+import {
+  ACTION_BAND_HEADINGS,
+  bandOrder,
+  formatThresholdsNote,
+} from "./action-bands.js";
+import { propertyColumnTitle } from "./build-comparison-report-shared.js";
+import type { SanitizedComparisonEntry } from "./comparison-sanitize.js";
+import type { PreparedComparisonReport } from "./prepare-comparison.js";
 
 function escapeHtml(text: string): string {
   return text
@@ -25,7 +31,7 @@ function formatCellHtml(l: ScoredListing, row: ComparisonRowDef): string {
   return escapeHtml(raw);
 }
 
-function reasonsListHtml(entries: ComparisonReportEntry[]): string {
+function reasonsListHtml(entries: SanitizedComparisonEntry[]): string {
   if (entries.length === 0) {
     return "<p><em>なし</em></p>";
   }
@@ -34,11 +40,15 @@ function reasonsListHtml(entries: ComparisonReportEntry[]): string {
       const name = escapeHtml(
         e.detail?.propertyName || e.buildingTitle || e.id,
       );
+      const merge =
+        e.mergeSuppressed && e.mergeSuppressed > 0
+          ? ` <span class="merge">(+${e.mergeSuppressed}件の重複掲載を統合)</span>`
+          : "";
       if (e.reportReasons.length === 0) {
-        return `<li><strong>${name}</strong></li>`;
+        return `<li><strong>${e.score}点</strong> ${name}${merge}</li>`;
       }
       const reasons = escapeHtml(e.reportReasons.join("、"));
-      return `<li><strong>${name}</strong>: ${reasons}</li>`;
+      return `<li><strong>${e.score}点</strong> ${name}${merge}: ${reasons}</li>`;
     })
     .join("\n");
   return `<ul class="reasons">${items}</ul>`;
@@ -74,6 +84,19 @@ ${bodyRows}
 </div>`;
 }
 
+function renderNotifyByBands(prepared: PreparedComparisonReport): string {
+  const parts: string[] = [];
+  for (const band of bandOrder()) {
+    const list = prepared.notifyByBand[band];
+    if (list.length === 0) continue;
+    const { title, hint } = ACTION_BAND_HEADINGS[band];
+    parts.push(`<h3>${escapeHtml(title)} <span class="hint">${escapeHtml(hint)}</span></h3>`);
+    parts.push(reasonsListHtml(list));
+    parts.push(buildMatrixTableHtml(list));
+  }
+  return parts.join("\n");
+}
+
 const REPORT_STYLES = `
   :root { color-scheme: light; }
   body {
@@ -86,9 +109,12 @@ const REPORT_STYLES = `
   }
   h1 { font-size: 1.35rem; margin: 0 0 8px; }
   h2 { font-size: 1.1rem; margin: 28px 0 10px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  h3 { font-size: 1rem; margin: 20px 0 8px; }
+  h3 .hint { font-weight: normal; color: #666; font-size: 0.9em; }
   .meta { color: #444; margin: 0 0 6px; }
   .meta ul { margin: 8px 0; padding-left: 1.2em; }
   .reasons { margin: 8px 0 16px; padding-left: 1.2em; }
+  .merge { color: #888; font-size: 0.9em; }
   .table-wrap {
     overflow-x: auto;
     margin: 12px 0 24px;
@@ -135,24 +161,25 @@ const REPORT_STYLES = `
 
 export function buildComparisonReportHtml(options: {
   generatedAt: Date;
-  entries: ComparisonReportEntry[];
+  prepared: PreparedComparisonReport;
   mode: "new" | "snapshot";
 }): string {
-  const { generatedAt, entries, mode } = options;
+  const { generatedAt, prepared, mode } = options;
   const stamp = generatedAt.toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",
   });
-  const notify = dedupeByDetailUrl(
-    entries.filter((e) => e.reportBucket === "notify"),
-  );
-  const passed = dedupeByDetailUrl(
-    entries.filter((e) => e.reportBucket === "passed_over"),
-  );
+  const { notify, passed, notifyRawCount, mergeStats: ms, thresholds } =
+    prepared;
 
   const intro =
     mode === "snapshot"
       ? "スナップショット時点の該当物件"
       : "今回の新規差分物件";
+
+  const mergeLine =
+    ms.before > ms.after
+      ? `<li>重複統合: 通知 ${ms.before} 件 → ${ms.after} 件（同一詳細URL・同一マンション×階/面積は最安1行）</li>`
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -169,14 +196,15 @@ export function buildComparisonReportHtml(options: {
 <li>生成: ${escapeHtml(stamp)} (JST)</li>
 <li>対象: ${escapeHtml(intro)}</li>
 <li>検索条件: ${escapeHtml(formatSearchConditionsShort())}</li>
+<li>区分: ${escapeHtml(formatThresholdsNote(thresholds))}</li>
+${mergeLine}
 </ul>
 </div>
 
-<h2>おすすめ候補（通知対象 ${notify.length} 件）</h2>
-${reasonsListHtml(notify)}
-${buildMatrixTableHtml(notify)}
+<h2>おすすめ候補（統合後 ${notify.length} 件 / 取得 ${notifyRawCount} 件）</h2>
+${renderNotifyByBands(prepared)}
 
-<h2>見送り（${passed.length} 件）</h2>
+<h2>見送り（統合後 ${passed.length} 件）</h2>
 ${reasonsListHtml(passed)}
 ${buildMatrixTableHtml(passed)}
 

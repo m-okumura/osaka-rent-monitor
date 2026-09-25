@@ -79,6 +79,14 @@ export const config = {
   accessFilterEnabled: process.env.ACCESS_FILTER !== "false",
   comparisonReportEnabled: process.env.COMPARISON_REPORT !== "false",
   reportsDir: process.env.REPORTS_DIR ?? ".data/reports",
+  /** メール・レポートの A 区分（固定モード時） */
+  actionScoreBandA: optionalInt("ACTION_SCORE_A") ?? 100,
+  /** メール・レポートの B 区分下限（固定モード時） */
+  actionScoreBandB: optionalInt("ACTION_SCORE_B") ?? 98,
+  /** fixed | dynamic（dynamic は最高 score と spread で A/B を決める） */
+  actionBandMode:
+    process.env.ACTION_BAND_MODE === "dynamic" ? "dynamic" : "fixed",
+  actionBandDynamicSpread: optionalInt("ACTION_BAND_SPREAD") ?? 3,
   notifyProvider,
   gemini: {
     apiKey: () => optionalEnv("GEMINI_API_KEY"),

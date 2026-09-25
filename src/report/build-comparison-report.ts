@@ -1,9 +1,13 @@
 export type { ComparisonReportEntry } from "./comparison-report-entry.js";
 export {
-  dedupeByDetailUrl,
   propertyColumnTitle,
+  listingDisplayName,
 } from "./build-comparison-report-shared.js";
 export { buildComparisonReportHtml } from "./build-comparison-report-html.js";
+export {
+  prepareComparisonReport,
+  type PreparedComparisonReport,
+} from "./prepare-comparison.js";
 
 export function comparisonReportFilename(generatedAt: Date): string {
   const parts = new Intl.DateTimeFormat("ja-JP", {

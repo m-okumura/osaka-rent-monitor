@@ -5,7 +5,8 @@ import { config } from "./config.js";
 import { enrichAndScoreListings } from "./enrich-details.js";
 import { createNotifier, isNotifierConfigured } from "./notify/index.js";
 import type { MailAttachment } from "./notify/types.js";
-import { buildComparisonMailAttachment } from "./report/save-comparison-report.js";
+import { buildComparisonMailArtifacts } from "./report/save-comparison-report.js";
+import type { PreparedComparisonReport } from "./report/prepare-comparison.js";
 import { diffListingIds, loadState, saveState } from "./state.js";
 import type { Listing, ScoredListing } from "./types.js";
 
@@ -16,6 +17,7 @@ async function prepareForMail(
   scored: ScoredListing[];
   advisorHtml: string;
   attachments?: MailAttachment[];
+  comparisonReport?: PreparedComparisonReport;
 }> {
   if (!config.detailFetchEnabled || raw.length === 0) {
     const scored = raw.map((l) => ({
@@ -38,19 +40,25 @@ async function prepareForMail(
     );
   }
 
-  const reportAttachment = await buildComparisonMailAttachment({
+  const { attachment, prepared } = await buildComparisonMailArtifacts({
     entries: batch.forReport,
     mode,
   });
-  const attachments = reportAttachment ? [reportAttachment] : undefined;
-  if (reportAttachment) {
-    console.log(`比較レポート: ${reportAttachment.filename}（メール添付）`);
+  const attachments = attachment ? [attachment] : undefined;
+  if (attachment) {
+    console.log(`比較レポート: ${attachment.filename}（メール添付）`);
+    if (prepared && prepared.mergeStats.mergedAway > 0) {
+      console.log(
+        `  重複統合: ${prepared.mergeStats.before} → ${prepared.mergeStats.after} 件`,
+      );
+    }
   }
 
   return {
     scored: batch.forNotification,
     advisorHtml: advisor.html,
     attachments,
+    comparisonReport: prepared ?? undefined,
   };
 }
 
@@ -71,15 +79,14 @@ async function main(): Promise<void> {
   const currentIds = listings.map((l) => l.id);
 
   if (config.snapshotEmail) {
-    const { scored, advisorHtml, attachments } = await prepareForMail(
-      listings,
-      "snapshot",
-    );
+    const { scored, advisorHtml, attachments, comparisonReport } =
+      await prepareForMail(listings, "snapshot");
     const mailContext = {
       summaries,
       matchedCount: listings.length,
       advisorHtml,
       attachments,
+      comparisonReport,
     };
     console.log(
       `スナップショット: ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
@@ -110,15 +117,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  const { scored, advisorHtml, attachments } = await prepareForMail(
-    newListings,
-    "new",
-  );
+  const { scored, advisorHtml, attachments, comparisonReport } =
+    await prepareForMail(newListings, "new");
   const mailContext = {
     summaries,
     matchedCount: listings.length,
     advisorHtml,
     attachments,
+    comparisonReport,
   };
 
   console.log(

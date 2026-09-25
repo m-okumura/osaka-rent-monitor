@@ -5,21 +5,29 @@ import type { MailAttachment } from "../notify/types.js";
 import {
   buildComparisonReportHtml,
   comparisonReportFilename,
+  prepareComparisonReport,
   type ComparisonReportEntry,
+  type PreparedComparisonReport,
 } from "./build-comparison-report.js";
 
-export async function buildComparisonMailAttachment(options: {
+export type ComparisonMailArtifacts = {
+  attachment: MailAttachment | null;
+  prepared: PreparedComparisonReport | null;
+};
+
+export async function buildComparisonMailArtifacts(options: {
   entries: ComparisonReportEntry[];
   mode: "new" | "snapshot";
-}): Promise<MailAttachment | null> {
+}): Promise<ComparisonMailArtifacts> {
   if (!config.comparisonReportEnabled || options.entries.length === 0) {
-    return null;
+    return { attachment: null, prepared: null };
   }
 
   const generatedAt = new Date();
+  const prepared = prepareComparisonReport(options.entries);
   const content = buildComparisonReportHtml({
     generatedAt,
-    entries: options.entries,
+    prepared,
     mode: options.mode,
   });
   const filename = comparisonReportFilename(generatedAt);
@@ -29,8 +37,20 @@ export async function buildComparisonMailAttachment(options: {
   await fs.writeFile(path.join(dir, filename), content, "utf-8");
 
   return {
-    filename,
-    content,
-    contentType: "text/html; charset=utf-8",
+    prepared,
+    attachment: {
+      filename,
+      content,
+      contentType: "text/html; charset=utf-8",
+    },
   };
+}
+
+/** @deprecated buildComparisonMailArtifacts を使用 */
+export async function buildComparisonMailAttachment(options: {
+  entries: ComparisonReportEntry[];
+  mode: "new" | "snapshot";
+}): Promise<MailAttachment | null> {
+  const { attachment } = await buildComparisonMailArtifacts(options);
+  return attachment;
 }
