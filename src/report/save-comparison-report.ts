@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { config } from "../config.js";
-import type { MailAttachment } from "../notify/types.js";
 import {
   buildComparisonReportHtml,
   comparisonReportFilename,
@@ -10,47 +9,48 @@ import {
   type PreparedComparisonReport,
 } from "./build-comparison-report.js";
 
-export type ComparisonMailArtifacts = {
-  attachment: MailAttachment | null;
-  prepared: PreparedComparisonReport | null;
-};
+export { prepareComparisonReport, type PreparedComparisonReport };
 
-export async function buildComparisonMailArtifacts(options: {
-  entries: ComparisonReportEntry[];
+export async function writeComparisonReportHtmlFile(options: {
+  prepared: PreparedComparisonReport;
   mode: "new" | "snapshot";
-}): Promise<ComparisonMailArtifacts> {
-  if (!config.comparisonReportEnabled || options.entries.length === 0) {
-    return { attachment: null, prepared: null };
-  }
-
-  const generatedAt = new Date();
-  const prepared = prepareComparisonReport(options.entries);
+  generatedAt?: Date;
+}): Promise<string> {
+  const generatedAt = options.generatedAt ?? new Date();
   const content = buildComparisonReportHtml({
     generatedAt,
-    prepared,
+    prepared: options.prepared,
     mode: options.mode,
   });
   const filename = comparisonReportFilename(generatedAt);
-
   const dir = path.resolve(process.cwd(), config.reportsDir);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, filename), content, "utf-8");
-
-  return {
-    prepared,
-    attachment: {
-      filename,
-      content,
-      contentType: "text/html; charset=utf-8",
-    },
-  };
+  return filename;
 }
 
-/** @deprecated buildComparisonMailArtifacts を使用 */
-export async function buildComparisonMailAttachment(options: {
+/** メール用データ準備 + 任意でローカル HTML 保存（添付なし） */
+export async function prepareComparisonForMail(options: {
   entries: ComparisonReportEntry[];
   mode: "new" | "snapshot";
-}): Promise<MailAttachment | null> {
-  const { attachment } = await buildComparisonMailArtifacts(options);
-  return attachment;
+}): Promise<PreparedComparisonReport | null> {
+  if (options.entries.length === 0) return null;
+
+  const prepared = prepareComparisonReport(options.entries);
+
+  if (config.comparisonReportEnabled) {
+    const filename = await writeComparisonReportHtmlFile({
+      prepared,
+      mode: options.mode,
+    });
+    console.log(`比較レポート保存: ${filename}（${config.reportsDir}）`);
+  }
+
+  if (prepared.mergeStats.mergedAway > 0) {
+    console.log(
+      `  重複統合: ${prepared.mergeStats.before} → ${prepared.mergeStats.after} 件`,
+    );
+  }
+
+  return prepared;
 }

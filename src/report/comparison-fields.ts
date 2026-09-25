@@ -1,3 +1,4 @@
+import { resolveListingAddress } from "../listing-address.js";
 import type { ScoredListing, SuumoDataTableSnapshot } from "../types.js";
 
 export function normalizeTableCell(raw: string | null | undefined): string | null {
@@ -63,6 +64,7 @@ export const COMPARISON_ROW_DEFS: ComparisonRowDef[] = [
     label: "家賃+管理費",
     value: (l) => `${l.totalYen.toLocaleString("ja-JP")}円`,
   },
+  { label: "住所", value: (l) => resolveListingAddress(l) },
   {
     label: "最寄り",
     value: (l) => l.detail?.stationAccess[0] ?? l.accessSummary,

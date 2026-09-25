@@ -34,6 +34,8 @@ export type SuumoDataTableSnapshot = {
 
 export type ListingDetail = {
   propertyName: string;
+  /** 詳細 data_table / property_view の所在地（無ければ null） */
+  address: string | null;
   structureRaw: string | null;
   structureKind: StructureKind;
   areaSqm: number | null;

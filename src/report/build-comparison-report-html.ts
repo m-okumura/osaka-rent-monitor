@@ -1,16 +1,11 @@
-import type { ScoredListing } from "../types.js";
 import { formatSearchConditionsShort } from "../listing-requirements.js";
-import {
-  COMPARISON_ROW_DEFS,
-  formatCell,
-  type ComparisonRowDef,
-} from "./comparison-fields.js";
 import {
   ACTION_BAND_HEADINGS,
   bandOrder,
   formatThresholdsNote,
 } from "./action-bands.js";
-import { propertyColumnTitle } from "./build-comparison-report-shared.js";
+import { listingDisplayName } from "./build-comparison-report-shared.js";
+import { renderHorizontalComparisonMatrix } from "./comparison-matrix-html.js";
 import type { SanitizedComparisonEntry } from "./comparison-sanitize.js";
 import type { PreparedComparisonReport } from "./prepare-comparison.js";
 
@@ -22,27 +17,16 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function formatCellHtml(l: ScoredListing, row: ComparisonRowDef): string {
-  const raw = formatCell(l, row);
-  if (row.label === "詳細URL" && raw.startsWith("http")) {
-    const href = escapeHtml(raw);
-    return `<a href="${href}">SUUMO</a>`;
-  }
-  return escapeHtml(raw);
-}
-
 function reasonsListHtml(entries: SanitizedComparisonEntry[]): string {
   if (entries.length === 0) {
     return "<p><em>なし</em></p>";
   }
   const items = entries
     .map((e) => {
-      const name = escapeHtml(
-        e.detail?.propertyName || e.buildingTitle || e.id,
-      );
+      const name = escapeHtml(listingDisplayName(e));
       const merge =
         e.mergeSuppressed && e.mergeSuppressed > 0
-          ? ` <span class="merge">(+${e.mergeSuppressed}件の重複掲載を統合)</span>`
+          ? ` <span class="merge">(+${e.mergeSuppressed}件統合)</span>`
           : "";
       if (e.reportReasons.length === 0) {
         return `<li><strong>${e.score}点</strong> ${name}${merge}</li>`;
@@ -54,45 +38,16 @@ function reasonsListHtml(entries: SanitizedComparisonEntry[]): string {
   return `<ul class="reasons">${items}</ul>`;
 }
 
-function buildMatrixTableHtml(listings: ScoredListing[]): string {
-  if (listings.length === 0) {
-    return "<p><em>（該当なし）</em></p>";
-  }
-
-  const headerCells = [
-    '<th scope="row" class="corner">項目</th>',
-    ...listings.map(
-      (l) => `<th scope="col">${escapeHtml(propertyColumnTitle(l))}</th>`,
-    ),
-  ];
-
-  const bodyRows = COMPARISON_ROW_DEFS.map((row) => {
-    const cells = [
-      `<th scope="row">${escapeHtml(row.label)}</th>`,
-      ...listings.map((l) => `<td>${formatCellHtml(l, row)}</td>`),
-    ];
-    return `<tr>${cells.join("")}</tr>`;
-  }).join("\n");
-
-  return `<div class="table-wrap">
-<table>
-<thead><tr>${headerCells.join("")}</tr></thead>
-<tbody>
-${bodyRows}
-</tbody>
-</table>
-</div>`;
-}
-
 function renderNotifyByBands(prepared: PreparedComparisonReport): string {
   const parts: string[] = [];
   for (const band of bandOrder()) {
     const list = prepared.notifyByBand[band];
     if (list.length === 0) continue;
     const { title, hint } = ACTION_BAND_HEADINGS[band];
-    parts.push(`<h3>${escapeHtml(title)} <span class="hint">${escapeHtml(hint)}</span></h3>`);
-    parts.push(reasonsListHtml(list));
-    parts.push(buildMatrixTableHtml(list));
+    parts.push(
+      `<h3>${escapeHtml(title)} <span class="hint">${escapeHtml(hint)}</span></h3>`,
+    );
+    parts.push(renderHorizontalComparisonMatrix(list, "document"));
   }
   return parts.join("\n");
 }
@@ -178,7 +133,7 @@ export function buildComparisonReportHtml(options: {
 
   const mergeLine =
     ms.before > ms.after
-      ? `<li>重複統合: 通知 ${ms.before} 件 → ${ms.after} 件（同一詳細URL・同一マンション×階/面積は最安1行）</li>`
+      ? `<li>重複統合: 通知 ${ms.before} 件 → ${ms.after} 件</li>`
       : "";
 
   return `<!DOCTYPE html>
@@ -197,6 +152,7 @@ export function buildComparisonReportHtml(options: {
 <li>対象: ${escapeHtml(intro)}</li>
 <li>検索条件: ${escapeHtml(formatSearchConditionsShort())}</li>
 <li>区分: ${escapeHtml(formatThresholdsNote(thresholds))}</li>
+<li>住所: Google マップリンク</li>
 ${mergeLine}
 </ul>
 </div>
@@ -206,9 +162,9 @@ ${renderNotifyByBands(prepared)}
 
 <h2>見送り（統合後 ${passed.length} 件）</h2>
 ${reasonsListHtml(passed)}
-${buildMatrixTableHtml(passed)}
+${renderHorizontalComparisonMatrix(passed, "document")}
 
-<p class="footnote">※ SUUMO 詳細 data_table の項目を横並びにしたものです。未取得項目は — 表示。契約・空室は店舗で要確認。</p>
+<p class="footnote">※ SUUMO 詳細 data_table の項目を横並びにしたものです。</p>
 </body>
 </html>
 `;

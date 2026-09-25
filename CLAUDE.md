@@ -36,7 +36,7 @@
 | `GEMINI_API_KEY` | v1 AI 選定（任意） |
 | `AI_ADVISOR` | `false` で Gemini オフ |
 | `DETAIL_FETCH` | `false` で詳細 GET オフ |
-| `COMPARISON_REPORT` | `false` で比較 HTML 添付オフ（デフォルト ON） |
+| `COMPARISON_REPORT` | `false` で `.data/reports` への HTML 保存オフ（メール本文の表は常に出力） |
 | `REPORTS_DIR` | 比較レポート保存先（デフォルト `.data/reports`） |
 | `ACTION_SCORE_A` / `ACTION_SCORE_B` | メール・レポートの A/B 下限（デフォルト 100 / 98） |
 | `ACTION_BAND_MODE` | `dynamic` で最高 score 基準の A/B（`ACTION_BAND_SPREAD` デフォルト 3） |

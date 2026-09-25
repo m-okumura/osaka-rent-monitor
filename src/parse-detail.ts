@@ -1,6 +1,9 @@
 import * as cheerio from "cheerio";
 import { analyzeCancellation } from "./cancellation.js";
-import { extractDataTableSnapshot } from "./report/comparison-fields.js";
+import {
+  extractDataTableSnapshot,
+  normalizeTableCell,
+} from "./report/comparison-fields.js";
 import type { ListingDetail, StructureKind } from "./types.js";
 
 export type ParsedDetail = ListingDetail;
@@ -64,6 +67,21 @@ function propertyTableText(
       });
   });
   return found;
+}
+
+function resolveDetailAddress(
+  $: cheerio.CheerioAPI,
+  table: Map<string, string>,
+): string | null {
+  for (const key of ["所在地", "住所", "物件所在地"]) {
+    const fromTable = normalizeTableCell(table.get(key));
+    if (fromTable) return fromTable;
+  }
+  for (const title of ["所在地", "住所", "物件所在地"]) {
+    const fromView = propertyTableText($, title);
+    if (fromView) return fromView.replace(/\s+/g, " ").trim();
+  }
+  return null;
 }
 
 function propertyTableAccess($: cheerio.CheerioAPI): string[] {
@@ -140,6 +158,7 @@ export function parseSuumoDetailHtml(html: string): ParsedDetail {
 
   return {
     propertyName,
+    address: resolveDetailAddress($, table),
     structureRaw,
     structureKind,
     areaSqm,

@@ -76,10 +76,6 @@ function buildListingsMail(options: {
   const { introHtml, listings, context, subjectPrefix } = options;
   const advisorBlock = context.advisorHtml ?? "";
   const comparisonBlock = renderMailComparisonHtml(context.comparisonReport);
-  const attachmentNote =
-    context.attachments && context.attachments.length > 0
-      ? `<p style="color: #888;font-size:0.85em;">📎 全項目の横並び比較: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
-      : "";
   const listingFallback =
     comparisonBlock.length === 0 ? renderListingsFallback(listings) : "";
 
@@ -89,7 +85,6 @@ function buildListingsMail(options: {
     <p style="color: #444;">${renderSummaries(context.summaries)}</p>
     <p style="color: #444;">フィルタ後の該当: ${context.matchedCount} 件 / 通知対象: ${listings.length} 件</p>
     ${comparisonBlock}
-    ${attachmentNote}
     ${advisorBlock}
     ${listingFallback}
   `;
