@@ -43,3 +43,11 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AI_ADVISOR: "true"
         run: npm run check
+
+      - name: Upload comparison report (if generated)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-report-html
+          path: .data/reports/*.html
+          if-no-files-found: ignore

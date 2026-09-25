@@ -4,8 +4,16 @@ import { collectListings } from "./collect-listings.js";
 import { config } from "./config.js";
 import { enrichAndScoreListings } from "./enrich-details.js";
 import { createNotifier, isNotifierConfigured } from "./notify/index.js";
+import type { MailAttachment } from "./notify/types.js";
+import {
+  prepareComparisonForMail,
+  type ComparisonMailBundle,
+} from "./report/save-comparison-report.js";
+import {
+  resolveReportPublicHref,
+  shouldAttachReportHtml,
+} from "./report/report-link.js";
 import type { PreparedComparisonReport } from "./report/prepare-comparison.js";
-import { prepareComparisonForMail } from "./report/save-comparison-report.js";
 import { diffListingIds, loadState, saveState } from "./state.js";
 import type { Listing, ScoredListing } from "./types.js";
 
@@ -16,6 +24,10 @@ async function prepareForMail(
   scored: ScoredListing[];
   advisorHtml: string;
   comparisonReport?: PreparedComparisonReport;
+  reportHref?: string | null;
+  reportFilename?: string | null;
+  attachments?: MailAttachment[];
+  reportAttachFallback?: boolean;
 }> {
   if (!config.detailFetchEnabled || raw.length === 0) {
     const scored = raw.map((l) => ({
@@ -38,15 +50,42 @@ async function prepareForMail(
     );
   }
 
-  const comparisonReport = await prepareComparisonForMail({
+  const bundle = await prepareComparisonForMail({
     entries: batch.forReport,
     mode,
   });
+  const mailExtras = bundle ? mailExtrasFromComparisonBundle(bundle) : {};
 
   return {
     scored: batch.forNotification,
     advisorHtml: advisor.html,
-    comparisonReport: comparisonReport ?? undefined,
+    ...mailExtras,
+  };
+}
+
+function mailExtrasFromComparisonBundle(bundle: ComparisonMailBundle): {
+  comparisonReport: PreparedComparisonReport;
+  reportHref: string | null;
+  reportFilename: string;
+  attachments?: MailAttachment[];
+  reportAttachFallback: boolean;
+} {
+  const reportHref = resolveReportPublicHref(bundle.reportFilename);
+  const attach = shouldAttachReportHtml(reportHref);
+  return {
+    comparisonReport: bundle.prepared,
+    reportHref,
+    reportFilename: bundle.reportFilename,
+    reportAttachFallback: attach,
+    attachments: attach
+      ? [
+          {
+            filename: bundle.reportFilename,
+            content: bundle.reportHtml,
+            contentType: "text/html; charset=utf-8",
+          },
+        ]
+      : undefined,
   };
 }
 
@@ -67,15 +106,14 @@ async function main(): Promise<void> {
   const currentIds = listings.map((l) => l.id);
 
   if (config.snapshotEmail) {
-    const { scored, advisorHtml, comparisonReport } = await prepareForMail(
-      listings,
-      "snapshot",
-    );
+    const mailPayload = await prepareForMail(listings, "snapshot");
+    const { scored, advisorHtml, ...reportMail } = mailPayload;
     const mailContext = {
       summaries,
       matchedCount: listings.length,
       advisorHtml,
-      comparisonReport,
+      attachments: mailPayload.attachments,
+      ...reportMail,
     };
     console.log(
       `スナップショット: ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
@@ -106,15 +144,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  const { scored, advisorHtml, comparisonReport } = await prepareForMail(
-    newListings,
-    "new",
-  );
+  const mailPayload = await prepareForMail(newListings, "new");
+  const { scored, advisorHtml, ...reportMail } = mailPayload;
   const mailContext = {
     summaries,
     matchedCount: listings.length,
     advisorHtml,
-    comparisonReport,
+    attachments: mailPayload.attachments,
+    ...reportMail,
   };
 
   console.log(

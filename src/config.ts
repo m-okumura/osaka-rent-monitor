@@ -79,6 +79,10 @@ export const config = {
   accessFilterEnabled: process.env.ACCESS_FILTER !== "false",
   comparisonReportEnabled: process.env.COMPARISON_REPORT !== "false",
   reportsDir: process.env.REPORTS_DIR ?? ".data/reports",
+  /** 設定時はメールに「レポートを開く」URL（末尾スラッシュ任意） */
+  reportPublicBaseUrl: optionalEnv("REPORT_PUBLIC_BASE_URL"),
+  /** 公開 URL が無いとき HTML を1件添付（デフォルト ON・本文に表は載せない） */
+  comparisonAttachHtml: process.env.COMPARISON_ATTACH_HTML !== "false",
   /** メール・レポートの A 区分（固定モード時） */
   actionScoreBandA: optionalInt("ACTION_SCORE_A") ?? 100,
   /** メール・レポートの B 区分下限（固定モード時） */

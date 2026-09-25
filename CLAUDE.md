@@ -36,8 +36,10 @@
 | `GEMINI_API_KEY` | v1 AI 選定（任意） |
 | `AI_ADVISOR` | `false` で Gemini オフ |
 | `DETAIL_FETCH` | `false` で詳細 GET オフ |
-| `COMPARISON_REPORT` | `false` で `.data/reports` への HTML 保存オフ（メール本文の表は常に出力） |
-| `REPORTS_DIR` | 比較レポート保存先（デフォルト `.data/reports`） |
+| `COMPARISON_REPORT` | `false` で `.data/reports` 保存オフ（メール要約は継続） |
+| `REPORTS_DIR` | ブラウザ用比較 HTML の保存先 |
+| `REPORT_PUBLIC_BASE_URL` | 設定時メールに「レポートを開く」URL（例: S3 / Pages） |
+| `COMPARISON_ATTACH_HTML` | 公開 URL 無し時に HTML を1件添付（デフォルト ON） |
 | `ACTION_SCORE_A` / `ACTION_SCORE_B` | メール・レポートの A/B 下限（デフォルト 100 / 98） |
 | `ACTION_BAND_MODE` | `dynamic` で最高 score 基準の A/B（`ACTION_BAND_SPREAD` デフォルト 3） |
 | `ACCESS_FILTER` | `false` で最寄り私鉄除外オフ |

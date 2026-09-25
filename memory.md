@@ -8,10 +8,10 @@
 - SUUMO: `mb=28` はエラー → 面積はコード判定。`fw=1K&fw=1DK&fw=1LDK` は有効
 - Gemini プロンプト: 荻窪南口ライク・生活動線・心斎橋徒歩こだわり低めを `advisor/gemini.ts`。facts に equipmentTags / appealTexts
 - 監視駅追加: 昭和町 `ek_18770` / 玉造 `ek_23520` / 中津 `ek_27221`
-- 横断比較: **メール本文**に A/B/C × 横並び全項目（添付なし）。住所→Google Maps。`COMPARISON_REPORT` は `.data/reports` 保存のみ
-- 横断レポート修正: `comparison-fields` クロージャバグ修正。HTML 添付 + **メール本文**に A/B/C 区分つきコンパクト表（`email-comparison-html.ts`）
-- 重複掲載: 同一 URL → 同一マンション×階（階不明は面積）で **最安1行**（`comparison-sanitize.ts`）。`ACTION_SCORE_A/B` または `ACTION_BAND_MODE=dynamic`
-- メール比較 UI: **1物件1カード** → 主要5項目横表 → 全項目横表（空行省略）。`area-preference.ts` で監視エリア加点（昭和町等+10 / あびこ今里-5 / 本町江坂-2）
+- 役割分担: **メール＝要約**（AI最上段 → 建物TOP4カード → レポートリンク/添付1件）。**横並び全表は `.data/reports` HTML のみ**（`mail-digest-html.ts`）
+- 建物カード: 同一マンションを1枠（例: シーラビフォリア 7〜8階 / 7.5〜7.7万 / 最安SUUMOリンク + Maps）
+- `REPORT_PUBLIC_BASE_URL` でメールからブラウザ打开。未設定時 `COMPARISON_ATTACH_HTML` で HTML 1添付（表は本文に載せない）
+- 重複・エリア加点: `comparison-sanitize.ts` / `area-preference.ts`（昭和町等+10、あびこ今里-5）
 
 ## 2026-09-24
 

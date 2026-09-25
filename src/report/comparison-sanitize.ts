@@ -7,7 +7,7 @@ export type SanitizedComparisonEntry = ComparisonReportEntry & {
   mergeSuppressed?: number;
 };
 
-function normalizeBuildingName(raw: string): string {
+export function normalizeBuildingName(raw: string): string {
   return raw
     .normalize("NFKC")
     .replace(/\s+/g, "")
@@ -28,11 +28,16 @@ function areaKey(l: ScoredListing): string {
   return l.areaText.trim().normalize("NFKC") || "?";
 }
 
-/** 同一マンション×同一階（階不明なら専有面積）でまとめるキー */
-export function comparisonMergeKey(l: ScoredListing): string {
-  const building = normalizeBuildingName(
+/** 同一マンション単位（メールカード集約用） */
+export function buildingGroupKey(l: ScoredListing): string {
+  return normalizeBuildingName(
     l.detail?.propertyName || l.buildingTitle || l.id,
   );
+}
+
+/** 同一マンション×同一階（階不明なら専有面積）でまとめるキー */
+export function comparisonMergeKey(l: ScoredListing): string {
+  const building = buildingGroupKey(l);
   const floor = floorKey(l);
   if (floor) return `${building}|f:${floor}`;
   return `${building}|a:${areaKey(l)}`;

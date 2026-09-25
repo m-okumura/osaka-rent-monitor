@@ -12,8 +12,11 @@ export type MailContext = {
   matchedCount: number;
   advisorHtml?: string;
   attachments?: MailAttachment[];
-  /** 横断比較（統合・A/B/C 区分済み）。メール本文の表に使用 */
   comparisonReport?: PreparedComparisonReport;
+  reportHref?: string | null;
+  reportFilename?: string | null;
+  /** 公開 URL が無いとき HTML 添付を使う */
+  reportAttachFallback?: boolean;
 };
 
 export type Notifier = {
