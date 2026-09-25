@@ -11,3 +11,12 @@ export function resolveListingAddress(l: ScoredListing): string | null {
 export function googleMapsSearchUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
+
+/** 比較レポート統合用（一覧・詳細表記ゆれを吸収） */
+export function normalizeListingAddressForMerge(raw: string): string {
+  return raw
+    .normalize("NFKC")
+    .replace(/\s+/g, "")
+    .replace(/^大阪府/, "")
+    .toLowerCase();
+}
