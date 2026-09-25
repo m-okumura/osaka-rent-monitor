@@ -12,8 +12,28 @@ export type SuumoSearchTarget = {
   listUrl: string;
 };
 
-/** 監視対象駅（御堂筋・谷町・千日前 等） */
+/** 監視対象駅（御堂筋・谷町・長堀 等） */
 export const SEARCH_TARGETS: SuumoSearchTarget[] = [
+  {
+    id: "showacho",
+    label: "昭和町駅（御堂筋線 ek_18770・西田辺周辺含む）",
+    listUrl: `https://suumo.jp/chintai/osaka/ek_18770/mansion/?${RENT_QUERY}`,
+  },
+  {
+    id: "tamatsukuri",
+    label: "玉造駅（長堀鶴見緑地線・JR ek_23520）",
+    listUrl: `https://suumo.jp/chintai/osaka/ek_23520/mansion/?${RENT_QUERY}`,
+  },
+  {
+    id: "nakatsu",
+    label: "中津駅（御堂筋線 ek_27221）",
+    listUrl: `https://suumo.jp/chintai/osaka/ek_27221/mansion/?${RENT_QUERY}`,
+  },
+  {
+    id: "tanimachi4",
+    label: "谷町四丁目駅（谷町線・中央線 ek_23380）",
+    listUrl: `https://suumo.jp/chintai/osaka/ek_23380/mansion/?${RENT_QUERY}`,
+  },
   {
     id: "imasato",
     label: "今里駅（千日前線 ek_03621）",
@@ -23,11 +43,6 @@ export const SEARCH_TARGETS: SuumoSearchTarget[] = [
     id: "abiko",
     label: "あびこ駅（御堂筋線 ek_01200）",
     listUrl: `https://suumo.jp/chintai/osaka/ek_01200/mansion/?${RENT_QUERY}`,
-  },
-  {
-    id: "tanimachi4",
-    label: "谷町四丁目駅（谷町線・中央線 ek_23380）",
-    listUrl: `https://suumo.jp/chintai/osaka/ek_23380/mansion/?${RENT_QUERY}`,
   },
   {
     id: "honmachi",

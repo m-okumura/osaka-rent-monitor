@@ -11,15 +11,23 @@ function budgetManYenLabel(): string {
   });
 }
 
+/** AI メモ用の住環境・評価軸（criteria / system で共有） */
+const LIFESTYLE_EVALUATION_GUIDANCE = [
+  "街の好み（荻窪南口ライク）: ビジネス街・繁華街のど真ん中（無機質なオフィス街、チェーン店だらけの商業地）は好まない。駅前に日常の買い物（スーパー等）がありつつ、物件周辺は落ち着いた住宅街の情緒や個人店があるエリア（東京でいう荻窪南口・西荻窪・目黒寄りの落ち着き）を高く評価する",
+  "通勤: 心斎橋徒歩圏にこだわりすぎない。電車で10〜15分程度なら、住環境の静けさ・落ち着きを優先して加点する（commuteHintShinsaibashi は目安）",
+  "生活動線: 徒歩5分以内に普段使いのスーパー・コンビニがあり自炊・日常買い物がストレスなくできるかを評価。appealTexts / equipmentTags / scoreReasons に記載があれば根拠にする。記載がなければ店名・距離を捏造せず「周辺の買い物動線は要確認（内見・地図）」と書く",
+].join("\n");
+
 function advisorCriteriaText(): string {
   const budgetMan = budgetManYenLabel();
   return [
     `予算: 管理費込${budgetMan}万円以下（listings はこの範囲で抽出済み）`,
-    "希望エリア: 本町・江坂・谷町四丁目など、職住近接または利便性を重視",
-    "監視駅（searchArea）: 今里・あびこ・谷町四丁目・本町・江坂",
+    "住環境優先（荻窪南口ライク）: 昭和町・玉造・中津・谷町四丁目など、閑静な住宅街＋駅前生活利便を高評価。本町・江坂は整いすぎ/オフィス街の無機質さが出やすいので加点は控えめ",
+    LIFESTYLE_EVALUATION_GUIDANCE,
+    "監視駅（searchArea）: 昭和町・玉造・中津・谷町四丁目・今里・あびこ・本町・江坂",
     `物件の硬条件: ${formatSearchConditionsShort()}`,
     "防音は加点要素。解約・違約金は cancellationClass / cancellationMailLabel を参照し断定しない",
-  ].join("。");
+  ].join("\n\n");
 }
 
 /** 404 になった旧モデルは含めない。503 時はリトライ後に次へ */
@@ -72,13 +80,16 @@ function factsToPrompt(facts: AdvisorFact[]): string {
 function systemInstruction(): string {
   const budgetMan = budgetManYenLabel();
   return `あなたは大阪賃貸の選定アドバイザーです。
-ユーザーの前提: 管理費込${budgetMan}万円以下（totalYen）。本町・江坂・谷町四丁目周辺は職住近接・利便性を重視する希望エリア。同等の物件なら searchArea / stationAccess からこれらに該当する物件を TOP おすすめに優先する。今里・あびこは監視対象だが、通勤・家賃のバランス案として位置づけてよい。
-入力 JSON の listings だけを根拠にしてください。JSON に無い事実（構造、平米、家賃など）を捏造しないでください。
+ユーザーの前提: 管理費込${budgetMan}万円以下（totalYen）。「住む街」の質を最優先し、職住近接は二の次（心斎橋徒歩圏にこだわらない）。
+評価軸:
+${LIFESTYLE_EVALUATION_GUIDANCE}
+エリアの優先: searchArea / stationAccess から、昭和町・玉造・中津（御堂筋・長堀周辺の落ち着き）や谷町四丁目など荻窪南口ライクな候補を TOP おすすめに優先する。本町・江坂は便利だが無機質・整いすぎになりやすいので、同等なら上記エリアを上に置く。今里・あびこは家賃・通勤の参考枠。
+入力 JSON の listings だけを根拠にしてください。JSON に無い事実（構造、平米、家賃、店舗名、距離など）を捏造しないでください。
 構造のおすすめ判定は structureEffective を正とし、structureKind（掲載表記）は参考に留めてください。
 structureConflict が true、または structureTrust が conflict_safe_side の物件は、掲載が RC でも RC として TOP おすすめに入れないでください（structureEffective が rc でない限り）。
 isLeoPalace が true の物件は「見送り推奨」に含めてください。
 cancellationClass が review の物件では cancellationMailLabel / cancellationHints をそのまま参照し、違約金を断定しないでください。term_only は契約期間のみ確度が高いです。
-心斎橋通勤は commuteHintShinsaibashi が非 null ならその文言を要約に使ってよい（目安である旨は短く触れる）。null のときだけ stationAccess ベースで控えめに書くか「要確認」。
+心斎橋通勤は commuteHintShinsaibashi を参考程度に触れてよい（目安・待ち時間除く）。徒歩分数や直通の短さだけで高得点にしない。電車10〜15分でも静かな住環境ならプラス評価する。
 出力は日本語 Markdown（見出し ##、箇条書き - ）。
 物件名は JSON の propertyName をそのまま使う。**物件名** で強調してよい。
 Markdown のリンク [text](url) や URL は書かない（メール側で SUUMO リンクを付与する）。

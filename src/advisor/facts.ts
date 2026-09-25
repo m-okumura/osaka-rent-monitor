@@ -27,6 +27,8 @@ export type AdvisorFact = {
   score: number;
   tier: string;
   scoreReasons: string[];
+  equipmentTags: string[];
+  appealTexts: string[];
   detailUrl: string;
   detailFetchError?: string;
 };
@@ -61,6 +63,8 @@ export function toAdvisorFacts(listings: ScoredListing[]): AdvisorFact[] {
     score: l.score,
     tier: l.tier,
     scoreReasons: l.scoreReasons,
+    equipmentTags: l.detail?.equipmentTags ?? [],
+    appealTexts: (l.detail?.appealTexts ?? []).slice(0, 6),
     detailUrl: l.detailUrl,
     detailFetchError: l.detailFetchError,
   }));

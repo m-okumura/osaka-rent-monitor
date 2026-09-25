@@ -6,7 +6,8 @@
 - 詳細必須: バス・トイレ別・独立洗面・室内洗濯・**RC/SRC**（`listing-requirements.ts` + `enrich-details`）
 - 監視駅追加: 谷町四丁目 `ek_23380` / 本町 `ek_35470` / 江坂 `ek_04840`（既存 今里・あびこ）
 - SUUMO: `mb=28` はエラー → 面積はコード判定。`fw=1K&fw=1DK&fw=1LDK` は有効
-- Gemini プロンプト: 予算込8.5万・希望エリア本町/江坂/谷町四丁目（職住近接・利便性）を `advisor/gemini.ts` に反映
+- Gemini プロンプト: 荻窪南口ライク・生活動線・心斎橋徒歩こだわり低めを `advisor/gemini.ts`。facts に equipmentTags / appealTexts
+- 監視駅追加: 昭和町 `ek_18770` / 玉造 `ek_23520` / 中津 `ek_27221`
 
 ## 2026-09-24
 
