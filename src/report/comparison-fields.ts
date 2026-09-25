@@ -1,5 +1,6 @@
 import { resolveListingAddress } from "../listing-address.js";
 import type { ScoredListing, SuumoDataTableSnapshot } from "../types.js";
+import { formatEquipmentHighlights } from "./equipment-highlights.js";
 
 export function normalizeTableCell(raw: string | null | undefined): string | null {
   if (raw == null) return null;
@@ -100,6 +101,16 @@ export const COMPARISON_ROW_DEFS: ComparisonRowDef[] = [
   },
   { label: "条件", value: (l) => l.detail?.dataTable.conditions ?? null },
   {
+    label: "設備ハイライト",
+    value: (l) =>
+      l.detail
+        ? formatEquipmentHighlights(
+            l.detail.equipmentTags,
+            l.detail.soundKeywords,
+          )
+        : null,
+  },
+  {
     label: "取り扱い店舗物件コード",
     value: (l) => l.detail?.dataTable.shopPropertyCode ?? null,
   },
@@ -138,7 +149,13 @@ export function formatCell(
   row: ComparisonRowDef,
   maxLen?: number,
 ): string {
-  return dash(row.value(l), maxLen ?? (row.label === "保証会社" ? 200 : 140));
+  const defaultLen =
+    row.label === "保証会社"
+      ? 200
+      : row.label === "設備ハイライト"
+        ? 180
+        : 140;
+  return dash(row.value(l), maxLen ?? defaultLen);
 }
 
 /** スマホ向け軽量ビュー（メール上部） */
