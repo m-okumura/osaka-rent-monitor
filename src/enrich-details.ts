@@ -1,11 +1,8 @@
 import { passesPrimaryAccessFilter } from "./access-filter.js";
 import { applyBuildingStructureConsensus } from "./building-structure.js";
 import { commuteHintToShinsaibashi } from "./commute-hints.js";
-import {
-  passesMinArea,
-  passesRcSrcRequirement,
-  passesRequiredEquipment,
-} from "./listing-requirements.js";
+import { hardDetailRejectReasons } from "./report/detail-reject-reasons.js";
+import type { ComparisonReportEntry } from "./report/build-comparison-report.js";
 import { fetchSuumoHtml } from "./suumo-client.js";
 import { parseSuumoDetailHtml } from "./parse-detail.js";
 import { scoreListing, sortByScore } from "./score.js";
@@ -17,30 +14,25 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function passesHardDetailRequirements(listing: ScoredListing): boolean {
-  if (listing.tier === "exclude") return false;
-  if (!listing.detail) return false;
-
-  if (
-    !passesMinArea(listing.areaText, listing.detail.areaSqm ?? null)
-  ) {
-    return false;
-  }
-  if (!passesRequiredEquipment(listing.detail)) return false;
-
-  const kind =
-    listing.structureEffective ?? listing.detail.structureKind ?? "unknown";
-  const raw = listing.detail.structureRaw;
-  if (!passesRcSrcRequirement(kind, raw)) return false;
-
-  return true;
+function toReportEntry(
+  listing: ScoredListing,
+  bucket: ComparisonReportEntry["reportBucket"],
+  reasons: string[],
+): ComparisonReportEntry {
+  return { ...listing, reportBucket: bucket, reportReasons: reasons };
 }
 
-/** 通知対象のみ詳細 GET（1.5秒間隔）→ スコア付与 */
+export type EnrichBatchResult = {
+  forNotification: ScoredListing[];
+  forReport: ComparisonReportEntry[];
+};
+
+/** 詳細 GET（1.5秒間隔）→ スコア → 通知用と比較レポート用に分割 */
 export async function enrichAndScoreListings(
   listings: Listing[],
-): Promise<ScoredListing[]> {
+): Promise<EnrichBatchResult> {
   const scored: ScoredListing[] = [];
+  const accessOnly: ComparisonReportEntry[] = [];
 
   for (let i = 0; i < listings.length; i++) {
     const listing = listings[i]!;
@@ -54,6 +46,13 @@ export async function enrichAndScoreListings(
       if (!passesPrimaryAccessFilter(primary)) {
         console.log(
           `  詳細で最寄り除外: ${detail.propertyName || listing.buildingTitle} (${primary})`,
+        );
+        accessOnly.push(
+          toReportEntry(
+            scoreListing(listing, detail),
+            "passed_over",
+            ["最寄り1行目フィルタ（私鉄等）"],
+          ),
         );
         continue;
       }
@@ -78,14 +77,26 @@ export async function enrichAndScoreListings(
     ),
   }));
 
-  const qualified = withCommute.filter((l) => {
-    const ok = passesHardDetailRequirements(l);
-    if (!ok && l.detail) {
-      const name = l.detail.propertyName || l.buildingTitle;
-      console.log(`  詳細条件で除外: ${name}`);
-    }
-    return ok;
-  });
+  const forNotification: ScoredListing[] = [];
+  const forReport: ComparisonReportEntry[] = [...accessOnly];
 
-  return sortByScore(qualified);
+  for (const listing of withCommute) {
+    const rejectReasons = hardDetailRejectReasons(listing);
+    if (rejectReasons.length === 0) {
+      forNotification.push(listing);
+      forReport.push(toReportEntry(listing, "notify", []));
+    } else {
+      forReport.push(toReportEntry(listing, "passed_over", rejectReasons));
+    }
+  }
+
+  return {
+    forNotification: sortByScore(forNotification),
+    forReport: forReport.sort(
+      (a, b) =>
+        (a.reportBucket === "notify" ? 0 : 1) -
+          (b.reportBucket === "notify" ? 0 : 1) ||
+        b.score - a.score,
+    ),
+  };
 }

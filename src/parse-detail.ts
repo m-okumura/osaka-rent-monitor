@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { analyzeCancellation } from "./cancellation.js";
+import { extractDataTableSnapshot } from "./report/comparison-fields.js";
 import type { ListingDetail, StructureKind } from "./types.js";
 
 export type ParsedDetail = ListingDetail;
@@ -95,7 +96,8 @@ export function parseSuumoDetailHtml(html: string): ParsedDetail {
     "";
 
   const table = readTableFields($);
-  const structureRaw = table.get("構造") ?? null;
+  const dataTable = extractDataTableSnapshot(table);
+  const structureRaw = table.get("構造") ?? dataTable.structure;
   const structureKind = classifyStructure(structureRaw);
 
   const areaFromTable = propertyTableText($, "専有面積");
@@ -150,5 +152,6 @@ export function parseSuumoDetailHtml(html: string): ParsedDetail {
     cancellationMailLabel: cancellation.mailLabel,
     contractTerm: cancellation.contractTerm,
     cancellationHints: cancellation.hints,
+    dataTable,
   };
 }

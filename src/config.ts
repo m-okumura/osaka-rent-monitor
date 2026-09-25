@@ -77,6 +77,8 @@ export const config = {
   aiAdvisorEnabled: process.env.AI_ADVISOR !== "false",
   /** 最寄り1行目が私鉄のみ等なら除外 */
   accessFilterEnabled: process.env.ACCESS_FILTER !== "false",
+  comparisonReportEnabled: process.env.COMPARISON_REPORT !== "false",
+  reportsDir: process.env.REPORTS_DIR ?? ".data/reports",
   notifyProvider,
   gemini: {
     apiKey: () => optionalEnv("GEMINI_API_KEY"),

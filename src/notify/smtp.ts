@@ -6,6 +6,7 @@ import {
   buildNewListingsMail,
   buildSnapshotMail,
 } from "./messages.js";
+import { toNodemailerAttachments } from "./mail-attachments.js";
 import type { MailContext, Notifier } from "./types.js";
 
 function createTransporter() {
@@ -27,6 +28,7 @@ export const smtpNotifier: Notifier = {
       to: config.notify.to(),
       subject,
       html,
+      attachments: toNodemailerAttachments(context.attachments),
     });
   },
 
@@ -37,6 +39,7 @@ export const smtpNotifier: Notifier = {
       to: config.notify.to(),
       subject,
       html,
+      attachments: toNodemailerAttachments(context.attachments),
     });
   },
 

@@ -114,11 +114,16 @@ function buildListingsMail(options: {
 }): { subject: string; html: string } {
   const { introHtml, listings, context, subjectPrefix } = options;
   const advisorBlock = context.advisorHtml ?? "";
+  const attachmentNote =
+    context.attachments && context.attachments.length > 0
+      ? `<p style="color: #444;">📎 横断比較レポート（Markdown）: ${context.attachments.map((a) => escapeHtml(a.filename)).join(", ")}</p>`
+      : "";
   const html = `
     ${introHtml}
     <p style="color: #444;">条件: ${escapeHtml(formatSearchConditionsShort())}（設備・RC/SRC は詳細で確認）</p>
     <p style="color: #444;">${renderSummaries(context.summaries)}</p>
     <p style="color: #444;">フィルタ後の該当: ${context.matchedCount} 件 / このメール: ${listings.length} 件</p>
+    ${attachmentNote}
     ${advisorBlock}
     ${renderScoreboard(listings)}
     ${renderListingsBody(listings)}
@@ -135,7 +140,7 @@ export function buildNewListingsMail(
   context: MailContext,
 ): { subject: string; html: string } {
   return buildListingsMail({
-    introHtml: `<p>SUUMO 賃貸（今里・あびこ）の<strong>新規差分</strong>です（${listings.length} 件）。最寄り1行目が地下鉄/JR の物件のみ。詳細・スコア・AI メモ付き。</p>`,
+    introHtml: `<p>SUUMO 賃貸の<strong>新規差分</strong>です（${listings.length} 件）。詳細・スコア・AI メモ付き。見送り含む比較表は添付 Markdown を参照。</p>`,
     listings,
     context,
     subjectPrefix: "新規差分",
@@ -148,7 +153,7 @@ export function buildSnapshotMail(
 ): { subject: string; html: string } {
   return buildListingsMail({
     introHtml:
-      "<p>SUUMO 賃貸（今里・あびこ）の<strong>現時点</strong>一覧です（詳細・スコア・AI メモ付き）。</p>",
+      "<p>SUUMO 賃貸の<strong>現時点</strong>一覧です（詳細・スコア・AI メモ付き）。比較表は添付 Markdown。</p>",
     listings,
     context,
     subjectPrefix: "現時点",

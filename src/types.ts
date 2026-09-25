@@ -9,6 +9,29 @@ export type StructureKind = "rc" | "steel" | "light_steel" | "other" | "unknown"
 
 export type CancellationClass = "review" | "term_only" | "not_listed";
 
+/** SUUMO 詳細ページ data_table の比較用スナップショット */
+export type SuumoDataTableSnapshot = {
+  madoriDetail: string | null;
+  structure: string | null;
+  floors: string | null;
+  builtYm: string | null;
+  energyConsumption: string | null;
+  insulation: string | null;
+  estimatedUtility: string | null;
+  insurance: string | null;
+  parking: string | null;
+  moveIn: string | null;
+  transactionType: string | null;
+  conditions: string | null;
+  shopPropertyCode: string | null;
+  suumoPropertyCode: string | null;
+  totalUnits: string | null;
+  infoUpdatedAt: string | null;
+  nextUpdateAt: string | null;
+  contractTerm: string | null;
+  guarantorCompany: string | null;
+};
+
 export type ListingDetail = {
   propertyName: string;
   structureRaw: string | null;
@@ -23,6 +46,7 @@ export type ListingDetail = {
   cancellationMailLabel: string;
   contractTerm: string | null;
   cancellationHints: string[];
+  dataTable: SuumoDataTableSnapshot;
 };
 
 export type Listing = {

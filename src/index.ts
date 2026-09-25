@@ -4,12 +4,18 @@ import { collectListings } from "./collect-listings.js";
 import { config } from "./config.js";
 import { enrichAndScoreListings } from "./enrich-details.js";
 import { createNotifier, isNotifierConfigured } from "./notify/index.js";
+import type { MailAttachment } from "./notify/types.js";
+import { buildComparisonMailAttachment } from "./report/save-comparison-report.js";
 import { diffListingIds, loadState, saveState } from "./state.js";
 import type { Listing, ScoredListing } from "./types.js";
 
-async function prepareForMail(raw: Listing[]): Promise<{
+async function prepareForMail(
+  raw: Listing[],
+  mode: "new" | "snapshot",
+): Promise<{
   scored: ScoredListing[];
   advisorHtml: string;
+  attachments?: MailAttachment[];
 }> {
   if (!config.detailFetchEnabled || raw.length === 0) {
     const scored = raw.map((l) => ({
@@ -22,17 +28,30 @@ async function prepareForMail(raw: Listing[]): Promise<{
   }
 
   console.log(`詳細ページ取得 (${raw.length} 件)…`);
-  const scored = await enrichAndScoreListings(raw);
+  const batch = await enrichAndScoreListings(raw);
 
   console.log("AI アドバイス生成…");
-  const advisor = await generateGeminiAdvice(scored);
+  const advisor = await generateGeminiAdvice(batch.forNotification);
   if (advisor.skipped) {
     console.warn(
       `AI スキップ: ${advisor.reason ?? "不明"}（メール送信は続行）`,
     );
   }
 
-  return { scored, advisorHtml: advisor.html };
+  const reportAttachment = await buildComparisonMailAttachment({
+    entries: batch.forReport,
+    mode,
+  });
+  const attachments = reportAttachment ? [reportAttachment] : undefined;
+  if (reportAttachment) {
+    console.log(`比較レポート: ${reportAttachment.filename}（メール添付）`);
+  }
+
+  return {
+    scored: batch.forNotification,
+    advisorHtml: advisor.html,
+    attachments,
+  };
 }
 
 async function main(): Promise<void> {
@@ -52,11 +71,15 @@ async function main(): Promise<void> {
   const currentIds = listings.map((l) => l.id);
 
   if (config.snapshotEmail) {
-    const { scored, advisorHtml } = await prepareForMail(listings);
+    const { scored, advisorHtml, attachments } = await prepareForMail(
+      listings,
+      "snapshot",
+    );
     const mailContext = {
       summaries,
       matchedCount: listings.length,
       advisorHtml,
+      attachments,
     };
     console.log(
       `スナップショット: ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
@@ -87,11 +110,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  const { scored, advisorHtml } = await prepareForMail(newListings);
+  const { scored, advisorHtml, attachments } = await prepareForMail(
+    newListings,
+    "new",
+  );
   const mailContext = {
     summaries,
     matchedCount: listings.length,
     advisorHtml,
+    attachments,
   };
 
   console.log(

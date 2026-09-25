@@ -6,6 +6,7 @@ import {
   buildNewListingsMail,
   buildSnapshotMail,
 } from "./messages.js";
+import { toResendAttachments } from "./mail-attachments.js";
 import type { MailContext, Notifier } from "./types.js";
 
 function client(): Resend {
@@ -20,6 +21,7 @@ export const resendNotifier: Notifier = {
       to: config.notify.to(),
       subject,
       html,
+      attachments: toResendAttachments(context.attachments),
     });
     if (error) {
       throw new Error(`Resend: ${error.message}`);
@@ -33,6 +35,7 @@ export const resendNotifier: Notifier = {
       to: config.notify.to(),
       subject,
       html,
+      attachments: toResendAttachments(context.attachments),
     });
     if (error) {
       throw new Error(`Resend: ${error.message}`);
