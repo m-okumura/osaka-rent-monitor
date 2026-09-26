@@ -42,6 +42,10 @@ jobs:
           SNAPSHOT_EMAIL: ${{ github.event_name == 'workflow_dispatch' && inputs.snapshot_email == true && 'true' || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AI_ADVISOR: "true"
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          INQUIRED_BC_EXTRA: ${{ secrets.INQUIRED_BC_EXTRA }}
         run: npm run check
 
       - name: Upload comparison report (if generated)

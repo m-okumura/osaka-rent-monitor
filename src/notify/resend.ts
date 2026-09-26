@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import type { ScoredListing } from "../types.js";
 import { config } from "../config.js";
 import {
+  buildAllInquiredSkippedMail,
   buildFailureMail,
   buildNewListingsMail,
   buildSnapshotMail,
@@ -22,6 +23,19 @@ export const resendNotifier: Notifier = {
       subject,
       html,
       attachments: toResendAttachments(context.attachments),
+    });
+    if (error) {
+      throw new Error(`Resend: ${error.message}`);
+    }
+  },
+
+  async sendNewListingsAllInquired(context: MailContext): Promise<void> {
+    const { subject, html } = buildAllInquiredSkippedMail(context);
+    const { error } = await client().emails.send({
+      from: config.notify.from(),
+      to: config.notify.to(),
+      subject,
+      html,
     });
     if (error) {
       throw new Error(`Resend: ${error.message}`);

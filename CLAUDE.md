@@ -43,6 +43,8 @@
 | `ACTION_SCORE_A` / `ACTION_SCORE_B` | メール・レポートの A/B 下限（デフォルト 100 / 98） |
 | `ACTION_BAND_MODE` | `dynamic` で最高 score 基準の A/B（`ACTION_BAND_SPREAD` デフォルト 3） |
 | `ACCESS_FILTER` | `false` で最寄り私鉄除外オフ |
+| `GMAIL_*` / `INQUIRED_BC_EXTRA` | 問合済み除外（Gmail Sent + state）。詳細 `docs/gmail-inquiry-filter.md` |
+| `INQUIRY_FILTER` | `false` で問合済みフィルタ off（未設定時は `GMAIL_REFRESH_TOKEN` があれば on） |
 
 詳細: `docs/access-filter.md`
 

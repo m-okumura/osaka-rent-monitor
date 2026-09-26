@@ -36,6 +36,8 @@
 
 | `GEMINI_API_KEY` | v1 AI 選定メモ（任意） |
 | `GEMINI_MODEL` | 省略時 `gemini-3.8-flash`（503 時は自動リトライ＋フォールバック） |
+| `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` / `GMAIL_REFRESH_TOKEN` | 問合済み除外（任意・設定時フィルタ ON） |
+| `INQUIRED_BC_EXTRA` | 電話問合など手動 bc（任意） |
 
 
 

@@ -109,4 +109,28 @@ export const config = {
     user: () => requireEnv("MAIL_USER"),
     password: () => requireEnv("MAIL_PASSWORD"),
   },
+  inquiry: {
+    /** false で問合済みフィルタ off。未設定時は Gmail 認証があれば on */
+    enabled: (() => {
+      const raw = process.env.INQUIRY_FILTER?.trim().toLowerCase();
+      if (raw === "false" || raw === "off") return false;
+      if (raw === "true" || raw === "gmail" || raw === "on") return true;
+      return Boolean(optionalEnv("GMAIL_REFRESH_TOKEN"));
+    })(),
+    extraBc: optionalEnv("INQUIRED_BC_EXTRA"),
+    gmailLookbackDays: optionalInt("GMAIL_SENT_LOOKBACK_DAYS") ?? 90,
+    gmailMaxMessages: optionalInt("GMAIL_SENT_MAX_MESSAGES") ?? 120,
+    gmailSearchExtra: optionalEnv("GMAIL_SENT_SEARCH_EXTRA"),
+    gmailCredentials(): {
+      clientId: string;
+      clientSecret: string;
+      refreshToken: string;
+    } | null {
+      const refreshToken = optionalEnv("GMAIL_REFRESH_TOKEN");
+      const clientId = optionalEnv("GMAIL_CLIENT_ID");
+      const clientSecret = optionalEnv("GMAIL_CLIENT_SECRET");
+      if (!refreshToken || !clientId || !clientSecret) return null;
+      return { clientId, clientSecret, refreshToken };
+    },
+  },
 };

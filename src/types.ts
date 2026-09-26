@@ -1,7 +1,9 @@
 export type MonitorState = {
-  version: 1;
+  version: 2;
   updatedAt: string;
   listingIds: string[];
+  /** 問い合わせ済み SUUMO 部屋コード（bc / 物件コード） */
+  inquiredBc: string[];
 };
 
 /** 通知・state 用（SUUMO 1 部屋） */

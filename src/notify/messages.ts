@@ -33,6 +33,20 @@ ${advisorHtml}
 </section>`;
 }
 
+function renderInquiryNote(context: MailContext): string {
+  const inv = context.inquiry;
+  if (!inv?.enabled) return "";
+  const parts = [
+    `問合済みフィルタ: 新規 ${inv.newTotal} 件のうち <strong>${inv.excludedInquired} 件除外</strong>（Gmail 送信済み + state + 手動 bc）`,
+  ];
+  if (inv.gmailError) {
+    parts.push(
+      `<span style="color:#b45309;">Gmail 同期エラー: ${escapeHtml(inv.gmailError)}</span>`,
+    );
+  }
+  return `<p style="margin:0 0 12px;color:#444;font-size:0.92em;">${parts.join(" · ")}</p>`;
+}
+
 function renderListingsFallback(listings: ScoredListing[]): string {
   const sorted = [...listings].sort((a, b) => b.score - a.score).slice(0, 5);
   const rows = sorted
@@ -64,6 +78,7 @@ function buildListingsMail(options: {
 
   const html = `
     ${introHtml}
+    ${renderInquiryNote(context)}
     ${renderAdvisorSection(context.advisorHtml ?? "")}
     ${digest}
     ${fallback}
@@ -72,8 +87,31 @@ function buildListingsMail(options: {
     <p style="color:#888;font-size:0.85em;margin:4px 0 0;">該当 ${context.matchedCount} 件 / 通知 ${listings.length} 件 · ${renderSummaries(context.summaries)}</p>
   `;
 
+  const inquirySuffix =
+    context.inquiry?.enabled && context.inquiry.excludedInquired > 0
+      ? ` / 問合済除外 ${context.inquiry.excludedInquired}`
+      : "";
   return {
-    subject: `[大阪SUUMO] ${subjectPrefix} ${listings.length} 件（該当 ${context.matchedCount} 件）`,
+    subject: `[大阪SUUMO] ${subjectPrefix} ${listings.length} 件（該当 ${context.matchedCount} 件${inquirySuffix}）`,
+    html,
+  };
+}
+
+export function buildAllInquiredSkippedMail(
+  context: MailContext,
+): { subject: string; html: string } {
+  const inv = context.inquiry;
+  const total = inv?.newTotal ?? 0;
+  const excluded = inv?.excludedInquired ?? total;
+  const html = `
+    <p style="margin:0 0 12px;">SUUMO 賃貸 <strong>新規差分</strong>は ${total} 件ありましたが、<strong>すべて問い合わせ済み</strong>のため詳細レポートは省略しました。</p>
+    ${renderInquiryNote(context)}
+    <p style="color:#666;margin:0 0 12px;">次回以降も Gmail 送信済み・state に記録された物件は通知から除外されます。電話のみ問合した場合は <code>INQUIRED_BC_EXTRA</code> に SUUMO 物件コードを追加してください。</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
+    <p style="color:#888;font-size:0.85em;margin:0;">該当 ${context.matchedCount} 件 · 新規 ${total} 件（未問合 0 / 除外 ${excluded}）</p>
+  `;
+  return {
+    subject: `[大阪SUUMO] 新規 ${total} 件・すべて問合済み（詳細省略）`,
     html,
   };
 }
@@ -82,8 +120,10 @@ export function buildNewListingsMail(
   listings: ScoredListing[],
   context: MailContext,
 ): { subject: string; html: string } {
+  const label =
+    context.inquiry?.enabled ? "新規差分・未問合のみ" : "新規差分";
   return buildListingsMail({
-    introHtml: `<p style="margin:0 0 12px;">SUUMO 賃貸 <strong>新規差分</strong>（${listings.length} 件）</p>`,
+    introHtml: `<p style="margin:0 0 12px;">SUUMO 賃貸 <strong>${escapeHtml(label)}</strong>（${listings.length} 件）</p>`,
     listings,
     context,
     subjectPrefix: "新規差分",

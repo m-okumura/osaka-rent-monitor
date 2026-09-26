@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import type { ScoredListing } from "../types.js";
 import { config } from "../config.js";
 import {
+  buildAllInquiredSkippedMail,
   buildFailureMail,
   buildNewListingsMail,
   buildSnapshotMail,
@@ -29,6 +30,16 @@ export const smtpNotifier: Notifier = {
       subject,
       html,
       attachments: toNodemailerAttachments(context.attachments),
+    });
+  },
+
+  async sendNewListingsAllInquired(context: MailContext): Promise<void> {
+    const { subject, html } = buildAllInquiredSkippedMail(context);
+    await createTransporter().sendMail({
+      from: config.notify.from(),
+      to: config.notify.to(),
+      subject,
+      html,
     });
   },
 

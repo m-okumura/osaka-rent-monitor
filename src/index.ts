@@ -14,7 +14,13 @@ import {
   shouldAttachReportHtml,
 } from "./report/report-link.js";
 import type { PreparedComparisonReport } from "./report/prepare-comparison.js";
+import { partitionByInquired } from "./inquiry/filter-listings.js";
+import {
+  inquiredSetFromList,
+  syncInquiredBc,
+} from "./inquiry/sync-inquired.js";
 import { diffListingIds, loadState, saveState } from "./state.js";
+import type { InquiryMailStats } from "./notify/types.js";
 import type { Listing, ScoredListing } from "./types.js";
 
 async function prepareForMail(
@@ -89,9 +95,32 @@ function mailExtrasFromComparisonBundle(bundle: ComparisonMailBundle): {
   };
 }
 
+function inquiryMailStats(
+  sync: Awaited<ReturnType<typeof syncInquiredBc>>,
+  newTotal: number,
+  excludedInquired: number,
+): InquiryMailStats {
+  return {
+    enabled: sync.enabled,
+    newTotal,
+    excludedInquired,
+    gmailSynced: sync.enabled && sync.fromGmail > 0,
+    gmailError: sync.gmailError,
+  };
+}
+
 async function main(): Promise<void> {
   const statePath = path.resolve(process.cwd(), config.statePath);
   const notifier = createNotifier();
+
+  const previous = await loadState(statePath);
+  const inquiredSync = await syncInquiredBc(previous?.inquiredBc ?? []);
+  const inquiredSet = inquiredSetFromList(inquiredSync.inquiredBc);
+  if (inquiredSync.enabled) {
+    console.log(
+      `問合済みコード: ${inquiredSync.inquiredBc.length} 件（Gmail +${inquiredSync.fromGmail} / 手動 +${inquiredSync.fromExtra}）`,
+    );
+  }
 
   console.log("大阪 SUUMO 賃貸監視を開始します…");
   const { listings, summaries } = await collectListings();
@@ -119,15 +148,14 @@ async function main(): Promise<void> {
       `スナップショット: ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
     );
     await notifier.sendSnapshot(scored, mailContext);
-    await saveState(statePath, currentIds);
+    await saveState(statePath, currentIds, inquiredSync.inquiredBc);
     return;
   }
 
-  const previous = await loadState(statePath);
   const previousIds = new Set(previous?.listingIds ?? []);
   const isFirstRun = previous === null;
 
-  await saveState(statePath, currentIds);
+  await saveState(statePath, currentIds, inquiredSync.inquiredBc);
 
   const newIds = diffListingIds(previousIds, currentIds);
   const newListings = listings.filter((l) => newIds.includes(l.id));
@@ -144,18 +172,45 @@ async function main(): Promise<void> {
     return;
   }
 
-  const mailPayload = await prepareForMail(newListings, "new");
+  const partitioned = config.inquiry.enabled
+    ? partitionByInquired(newListings, inquiredSet)
+    : { uninquired: newListings, inquired: [] as typeof newListings };
+
+  if (partitioned.inquired.length > 0) {
+    console.log(
+      `問合済みのため除外: ${partitioned.inquired.length} 件（未問合 ${partitioned.uninquired.length} 件）`,
+    );
+  }
+
+  const inquiryStats = inquiryMailStats(
+    inquiredSync,
+    newListings.length,
+    partitioned.inquired.length,
+  );
+
+  if (partitioned.uninquired.length === 0) {
+    console.log("新規はあるがすべて問合済み — 短い通知メールを送信");
+    await notifier.sendNewListingsAllInquired({
+      summaries,
+      matchedCount: listings.length,
+      inquiry: inquiryStats,
+    });
+    return;
+  }
+
+  const mailPayload = await prepareForMail(partitioned.uninquired, "new");
   const { scored, advisorHtml, ...reportMail } = mailPayload;
   const mailContext = {
     summaries,
     matchedCount: listings.length,
     advisorHtml,
     attachments: mailPayload.attachments,
+    inquiry: inquiryStats,
     ...reportMail,
   };
 
   console.log(
-    `新規 ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
+    `新規・未問合 ${scored.length} 件をメール送信します（${config.notifyProvider}）`,
   );
   await notifier.sendNewListings(scored, mailContext);
 }

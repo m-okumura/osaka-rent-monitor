@@ -7,6 +7,14 @@ export type MailAttachment = {
   contentType?: string;
 };
 
+export type InquiryMailStats = {
+  enabled: boolean;
+  newTotal: number;
+  excludedInquired: number;
+  gmailSynced?: boolean;
+  gmailError?: string;
+};
+
 export type MailContext = {
   summaries: AreaFetchSummary[];
   matchedCount: number;
@@ -17,6 +25,7 @@ export type MailContext = {
   reportFilename?: string | null;
   /** 公開 URL が無いとき HTML 添付を使う */
   reportAttachFallback?: boolean;
+  inquiry?: InquiryMailStats;
 };
 
 export type Notifier = {
@@ -24,6 +33,7 @@ export type Notifier = {
     listings: ScoredListing[],
     context: MailContext,
   ): Promise<void>;
+  sendNewListingsAllInquired(context: MailContext): Promise<void>;
   sendSnapshot(listings: ScoredListing[], context: MailContext): Promise<void>;
   sendFailure(message: string): Promise<void>;
 };
